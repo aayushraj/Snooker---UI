@@ -2,6 +2,7 @@
 import { BarChart3, Calendar, CreditCard, Home, Settings, Table, Users, Bell, Search } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { DashboardStats } from "@/components/dashboard-stats"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -160,7 +161,10 @@ export function SnookerClubLayout() {
       <AppSidebar />
       <SidebarInset>
         <TopNavbar />
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-1 flex-col gap-6 p-4">
+          {/* Dashboard Statistics */}
+          <DashboardStats />
+
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Table Overview</h1>
@@ -169,15 +173,19 @@ export function SnookerClubLayout() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 text-sm">
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                   <span>Available</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span>Occupied</span>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span>Active</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <span>Paused</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                   <span>Reserved</span>
                 </div>
               </div>
