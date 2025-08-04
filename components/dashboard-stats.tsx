@@ -1,151 +1,144 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, DollarSign, ShoppingCart, Play, Pause, Square, Calendar } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Table, PauseCircle, CheckCircle, XCircle, DollarSign, Utensils, Users, ShoppingCart } from 'lucide-react'
+import { useEffect, useState } from "react"
+import { formatCurrency } from "@/lib/utils"
 
-interface DashboardStatsProps {
-  tables?: Array<{
-    id: number
-    name: string
-    status: "available" | "occupied" | "paused" | "reserved"
-    currentSession?: {
-      customerName: string
-      startTime: string
-      totalAmount: number
-    }
-  }>
-  orders?: Array<{
-    id: number
-    tableId: number
-    customerName: string
-    items: Array<{ name: string; quantity: number; price: number }>
-    status: "pending" | "preparing" | "completed"
-    total: number
-    createdAt: string
-  }>
+interface DashboardStatsData {
+  activeTables: number;
+  pausedTables: number;
+  availableTables: number;
+  reservedTables: number;
+  totalRevenue: number;
+  tableRevenue: number;
+  orderRevenue: number;
+  activeCustomers: number;
+  totalOrders: number;
 }
 
-export function DashboardStats({ tables = [], orders = [] }: DashboardStatsProps) {
-  const activeTables = tables.filter((t) => t.status === "occupied").length
-  const pausedTables = tables.filter((t) => t.status === "paused").length
-  const availableTables = tables.filter((t) => t.status === "available").length
-  const reservedTables = tables.filter((t) => t.status === "reserved").length
+export function DashboardStats() {
+  const [stats, setStats] = useState<DashboardStatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const totalRevenue = tables.reduce((sum, table) => {
-    return sum + (table.currentSession?.totalAmount || 0)
-  }, 0)
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('https://localhost:5001/api/dashboard/stats');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: DashboardStatsData = await response.json();
+        setStats(data);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const todayOrders = orders.filter((order) => {
-    const orderDate = new Date(order.createdAt).toDateString()
-    const today = new Date().toDateString()
-    return orderDate === today
-  })
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
-  const pendingOrders = todayOrders.filter((o) => o.status === "pending").length
-  const completedOrders = todayOrders.filter((o) => o.status === "completed").length
-  const totalOrderValue = todayOrders.reduce((sum, order) => sum + order.total, 0)
+  if (loading) return <div className="text-center py-12">Loading dashboard stats...</div>;
+  if (error) return <div className="text-center py-12 text-red-500">Error: {error}</div>;
+  if (!stats) return <div className="text-center py-12">No stats available.</div>;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">Welcome to Elite Snooker Club Management System</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Table Status Cards */}
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-800">Active Tables</CardTitle>
-            <Play className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">{activeTables}</div>
-            <p className="text-xs text-green-600">Currently playing</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-800">Paused Tables</CardTitle>
-            <Pause className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-900">{pausedTables}</div>
-            <p className="text-xs text-yellow-600">Temporarily paused</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800">Available Tables</CardTitle>
-            <Square className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-900">{availableTables}</div>
-            <p className="text-xs text-blue-600">Ready for use</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 bg-purple-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-800">Reserved Tables</CardTitle>
-            <Calendar className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-900">{reservedTables}</div>
-            <p className="text-xs text-purple-600">Booked in advance</p>
-          </CardContent>
-        </Card>
-
-        {/* Revenue Card */}
-        <Card className="border-emerald-200 bg-emerald-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-900">${totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-emerald-600">Today's table revenue</p>
-          </CardContent>
-        </Card>
-
-        {/* Order Statistics */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{todayOrders.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {pendingOrders} pending, {completedOrders} completed
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Order Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalOrderValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">From food & beverages</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeTables + pausedTables}</div>
-            <p className="text-xs text-muted-foreground">Currently in club</p>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <Card className="bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-700">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">Active Tables</CardTitle>
+          <Table className="h-4 w-4 text-green-600 dark:text-green-400" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.activeTables}</div>
+          <p className="text-xs text-muted-foreground">Tables currently in use</p>
+        </CardContent>
+      </Card>
+      <Card className="bg-yellow-100 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Paused Tables</CardTitle>
+          <PauseCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{stats.pausedTables}</div>
+          <p className="text-xs text-muted-foreground">Sessions on hold</p>
+        </CardContent>
+      </Card>
+      <Card className="bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">Available Tables</CardTitle>
+          <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.availableTables}</div>
+          <p className="text-xs text-muted-foreground">Ready for new customers</p>
+        </CardContent>
+      </Card>
+      <Card className="bg-purple-100 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-purple-800 dark:text-purple-200">Reserved Tables</CardTitle>
+          <XCircle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats.reservedTables}</div>
+          <p className="text-xs text-muted-foreground">Tables with upcoming bookings</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+          <p className="text-xs text-muted-foreground">Combined table and order revenue</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Table Revenue</CardTitle>
+          <Table className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatCurrency(stats.tableRevenue)}</div>
+          <p className="text-xs text-muted-foreground">Revenue from table usage</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Order Revenue</CardTitle>
+          <Utensils className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatCurrency(stats.orderRevenue)}</div>
+          <p className="text-xs text-muted-foreground">Revenue from food and beverage orders</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.activeCustomers}</div>
+          <p className="text-xs text-muted-foreground">Customers currently checked in</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+          <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.totalOrders}</div>
+          <p className="text-xs text-muted-foreground">Total food and beverage orders today</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

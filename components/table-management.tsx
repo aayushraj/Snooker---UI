@@ -1,333 +1,169 @@
 "use client"
 
-import * as React from "react"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Trash2, MapPin, DollarSign, Settings } from "lucide-react"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { useToast } from "@/components/ui/use-toast"
+import { Trash2, Edit, PlusCircle } from 'lucide-react'
+import { formatCurrency } from "@/lib/utils"
 
 interface TableConfig {
-  id: number
-  name: string
-  location: string
-  hourlyRate: number
-  status: "active" | "maintenance" | "disabled"
-  description?: string
+  id: string;
+  name: string;
+  hourlyRate: number;
+  location: string;
 }
 
-const mockTables: TableConfig[] = [
-  {
-    id: 1,
-    name: "Table 1",
-    location: "Main Hall",
-    hourlyRate: 25,
-    status: "active",
-    description: "Standard snooker table",
-  },
-  {
-    id: 2,
-    name: "Table 2",
-    location: "Main Hall",
-    hourlyRate: 25,
-    status: "active",
-    description: "Standard snooker table",
-  },
-  {
-    id: 3,
-    name: "Table 3",
-    location: "VIP Room",
-    hourlyRate: 35,
-    status: "active",
-    description: "Premium table with better lighting",
-  },
-  {
-    id: 4,
-    name: "Table 4",
-    location: "Main Hall",
-    hourlyRate: 25,
-    status: "maintenance",
-    description: "Standard snooker table",
-  },
-  {
-    id: 5,
-    name: "Table 5",
-    location: "Main Hall",
-    hourlyRate: 25,
-    status: "active",
-    description: "Standard snooker table",
-  },
-  {
-    id: 6,
-    name: "Table 6",
-    location: "VIP Room",
-    hourlyRate: 35,
-    status: "active",
-    description: "Premium table with better lighting",
-  },
-]
-
-const locations = ["Main Hall", "VIP Room", "Private Room", "Tournament Hall"]
-
 export function TableManagement() {
-  const [tables, setTables] = React.useState<TableConfig[]>(mockTables)
-  const [showAddDialog, setShowAddDialog] = React.useState(false)
-  const [editingTable, setEditingTable] = React.useState<TableConfig | null>(null)
-  const [formData, setFormData] = React.useState({
-    name: "",
-    location: "",
-    hourlyRate: "",
-    status: "active" as const,
-    description: "",
-  })
+  const [tables, setTables] = useState<TableConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentTable, setCurrentTable] = useState<TableConfig | null>(null);
+  const [tableName, setTableName] = useState("");
+  const [hourlyRate, setHourlyRate] = useState(0);
+  const [location, setLocation] = useState("");
+  const { toast } = useToast();
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      location: "",
-      hourlyRate: "",
-      status: "active",
-      description: "",
-    })
-  }
-
-  const handleAdd = () => {
-    const newTable: TableConfig = {
-      id: Math.max(...tables.map((t) => t.id)) + 1,
-      name: formData.name,
-      location: formData.location,
-      hourlyRate: Number.parseFloat(formData.hourlyRate),
-      status: formData.status,
-      description: formData.description,
+  const fetchTables = async () => {
+    try {
+      const response = await fetch('https://localhost:5001/api/tables');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: TableConfig[] = await response.json();
+      setTables(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    setTables([...tables, newTable])
-    setShowAddDialog(false)
-    resetForm()
-  }
+  };
 
-  const handleEdit = (table: TableConfig) => {
-    setEditingTable(table)
-    setFormData({
-      name: table.name,
-      location: table.location,
-      hourlyRate: table.hourlyRate.toString(),
-      status: table.status,
-      description: table.description || "",
-    })
-  }
+  useEffect(() => {
+    fetchTables();
+  }, []);
 
-  const handleUpdate = () => {
-    if (!editingTable) return
+  const handleOpenDialog = (table?: TableConfig) => {
+    setCurrentTable(table || null);
+    setTableName(table?.name || "");
+    setHourlyRate(table?.hourlyRate || 0);
+    setLocation(table?.location || "");
+    setIsDialogOpen(true);
+  };
 
-    const updatedTable: TableConfig = {
-      ...editingTable,
-      name: formData.name,
-      location: formData.location,
-      hourlyRate: Number.parseFloat(formData.hourlyRate),
-      status: formData.status,
-      description: formData.description,
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setCurrentTable(null);
+    setTableName("");
+    setHourlyRate(0);
+    setLocation("");
+  };
+
+  const handleSubmit = async () => {
+    if (!tableName.trim() || hourlyRate <= 0 || !location.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields correctly.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setTables(tables.map((t) => (t.id === editingTable.id ? updatedTable : t)))
-    setEditingTable(null)
-    resetForm()
-  }
+    const tableData = { name: tableName, hourlyRate, location };
+    let response;
+    let method;
+    let url;
 
-  const handleDelete = (id: number) => {
-    setTables(tables.filter((t) => t.id !== id))
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800"
-      case "maintenance":
-        return "bg-yellow-100 text-yellow-800"
-      case "disabled":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+    if (currentTable) {
+      // Update existing table
+      method = 'PUT';
+      url = `https://localhost:5001/api/tables/${currentTable.id}`;
+      response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentTable.id, ...tableData }),
+      });
+    } else {
+      // Create new table
+      method = 'POST';
+      url = 'https://localhost:5001/api/tables';
+      response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tableData),
+      });
     }
-  }
 
-  const activeTables = tables.filter((t) => t.status === "active").length
-  const maintenanceTables = tables.filter((t) => t.status === "maintenance").length
-  const disabledTables = tables.filter((t) => t.status === "disabled").length
-  const averageRate = tables.reduce((sum, t) => sum + t.hourlyRate, 0) / tables.length
+    if (response.ok) {
+      toast({
+        title: "Success",
+        description: `Table ${currentTable ? "updated" : "created"} successfully.`,
+      });
+      fetchTables();
+      handleCloseDialog();
+    } else {
+      const errorData = await response.json();
+      toast({
+        title: "Error",
+        description: `Failed to ${currentTable ? "update" : "create"} table: ${errorData.message || response.statusText}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this table?")) {
+      return;
+    }
+    try {
+      const response = await fetch(`https://localhost:5001/api/tables/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Table deleted successfully.",
+        });
+        fetchTables();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || response.statusText);
+      }
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: `Failed to delete table: ${e.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) return <div className="text-center py-12">Loading table configurations...</div>;
+  if (error) return <div className="text-center py-12 text-red-500">Error: {error}</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Table Management</h2>
-          <p className="text-muted-foreground">Configure and manage your snooker tables</p>
-        </div>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Table
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Table</DialogTitle>
-              <DialogDescription>Configure a new snooker table for your club</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Table Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Table 7"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Select
-                    value={formData.location}
-                    onValueChange={(value) => setFormData({ ...formData, location: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location} value={location}>
-                          {location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="rate">Hourly Rate ($)</Label>
-                  <Input
-                    id="rate"
-                    type="number"
-                    value={formData.hourlyRate}
-                    onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                    placeholder="25.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="disabled">Disabled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Optional description"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAdd} disabled={!formData.name || !formData.location || !formData.hourlyRate}>
-                Add Table
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tables</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tables.length}</div>
-            <p className="text-xs text-muted-foreground">Configured tables</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-800">Active Tables</CardTitle>
-            <Settings className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">{activeTables}</div>
-            <p className="text-xs text-green-600">Ready for use</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-800">Maintenance</CardTitle>
-            <Settings className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-900">{maintenanceTables}</div>
-            <p className="text-xs text-yellow-600">Under maintenance</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rate</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${averageRate.toFixed(0)}</div>
-            <p className="text-xs text-muted-foreground">Per hour</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tables List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Tables</CardTitle>
-          <CardDescription>Manage your snooker table configurations</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Table Configurations</CardTitle>
+        <Button onClick={() => handleOpenDialog()}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add New Table
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {tables.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">No tables configured yet.</div>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Location</TableHead>
                 <TableHead>Hourly Rate</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -335,119 +171,76 @@ export function TableManagement() {
               {tables.map((table) => (
                 <TableRow key={table.id}>
                   <TableCell className="font-medium">{table.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      {table.location}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      {table.hourlyRate}/hr
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(table.status)}>{table.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{table.description || "—"}</TableCell>
+                  <TableCell>{formatCurrency(table.hourlyRate)}</TableCell>
+                  <TableCell>{table.location}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center gap-2 justify-end">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(table)}>
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(table.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(table)}>
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(table.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        )}
+      </CardContent>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingTable} onOpenChange={() => setEditingTable(null)}>
-        <DialogContent>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit Table</DialogTitle>
-            <DialogDescription>Update table configuration</DialogDescription>
+            <DialogTitle>{currentTable ? "Edit Table" : "Add New Table"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Table Name</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-location">Location</Label>
-                <Select
-                  value={formData.location}
-                  onValueChange={(value) => setFormData({ ...formData, location: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-rate">Hourly Rate ($)</Label>
-                <Input
-                  id="edit-rate"
-                  type="number"
-                  value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="disabled">Disabled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tableName" className="text-right">
+                Table Name
+              </Label>
               <Input
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                id="tableName"
+                value={tableName}
+                onChange={(e) => setTableName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="hourlyRate" className="text-right">
+                Hourly Rate
+              </Label>
+              <Input
+                id="hourlyRate"
+                type="number"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(parseFloat(e.target.value))}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="location" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingTable(null)}>
+            <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleUpdate}>Update Table</Button>
+            <Button onClick={handleSubmit}>
+              {currentTable ? "Save Changes" : "Add Table"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  )
+    </Card>
+  );
 }

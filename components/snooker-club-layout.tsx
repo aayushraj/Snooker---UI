@@ -178,7 +178,7 @@ export function SnookerClubLayout() {
         <TopNavbar />
         <div className="flex flex-1 flex-col gap-6 p-4">
           {currentSection === "dashboard" && <DashboardStats />}
-          {currentSection === "tables" && <TablesOverview />}
+          {currentSection === "tables" && <TablesOverview onNavigateToSettings={() => setCurrentSection("settings")} />}
           {currentSection === "billing" && <BillingSection />}
           {currentSection === "orders" && <MenuManagement />}
           {currentSection === "members" && (

@@ -4,42 +4,53 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Play, Pause, Square, Clock, Users } from "lucide-react"
+import { Play, Pause, Square, Clock, Users } from 'lucide-react'
+import { formatTime } from '@/lib/utils';
 
 interface SnookerTableTimerProps {
   tableId: number
   searchQuery?: string
   activeFilter?: "all" | "active" | "paused" | "available" | "reserved"
+  startTime: string; // ISO string
+  pausedDuration: number; // in milliseconds
+  isPaused: boolean;
 }
 
 type TableStatus = "available" | "occupied" | "paused" | "reserved"
 
-export function SnookerTableTimer({ tableId, searchQuery = "", activeFilter = "all" }: SnookerTableTimerProps) {
-  const [isRunning, setIsRunning] = React.useState(false)
-  const [time, setTime] = React.useState(0)
+export function SnookerTableTimer({ tableId, searchQuery = "", activeFilter = "all", startTime, pausedDuration, isPaused }: SnookerTableTimerProps) {
+  const [elapsedTime, setElapsedTime] = React.useState(0);
+
+  React.useEffect(() => {
+    const startMs = new Date(startTime).getTime();
+    let animationFrameId: number;
+
+    const updateTimer = () => {
+      if (!isPaused) {
+        const currentElapsed = Date.now() - startMs - pausedDuration;
+        setElapsedTime(currentElapsed);
+      }
+      animationFrameId = requestAnimationFrame(updateTimer);
+    };
+
+    if (startTime) {
+      animationFrameId = requestAnimationFrame(updateTimer);
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [startTime, pausedDuration, isPaused]);
+
   const [status, setStatus] = React.useState<TableStatus>(() => {
     const rand = Math.random()
     if (rand > 0.6) return "available"
     if (rand > 0.4) return "occupied"
     if (rand > 0.2) return "paused"
     return "reserved"
-  })
-
-  React.useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-
-    if (isRunning && status === "occupied") {
-      interval = setInterval(() => {
-        setTime((prevTime) => prevTime + 1)
-      }, 1000)
-    } else if (!isRunning && time !== 0) {
-      if (interval) clearInterval(interval)
-    }
-
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [isRunning, time, status])
+  });
 
   const shouldShow = React.useMemo(() => {
     // Search filter
@@ -59,30 +70,15 @@ export function SnookerTableTimer({ tableId, searchQuery = "", activeFilter = "a
     return null
   }
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const remainingSeconds = seconds % 60
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
-    }
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
-
   const handleStart = () => {
     setStatus("occupied")
-    setIsRunning(true)
   }
 
   const handlePause = () => {
-    setIsRunning(!isRunning)
     setStatus((prevStatus) => (prevStatus === "occupied" ? "paused" : "occupied"))
   }
 
   const handleStop = () => {
-    setIsRunning(false)
-    setTime(0)
     setStatus("available")
   }
 
@@ -132,10 +128,10 @@ export function SnookerTableTimer({ tableId, searchQuery = "", activeFilter = "a
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-2xl font-mono font-bold text-green-700">
               <Clock className="w-5 h-5" />
-              {formatTime(time)}
+              {formatTime(elapsedTime)}
             </div>
             {status === "occupied" && (
-              <p className="text-sm text-green-600 mt-1">${((time / 3600) * 12).toFixed(2)} earned</p>
+              <p className="text-sm text-green-600 mt-1">${((elapsedTime / 3600000) * 12).toFixed(2)} earned</p>
             )}
           </div>
         </div>

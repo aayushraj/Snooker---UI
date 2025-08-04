@@ -8,111 +8,40 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Receipt, DollarSign, Clock, User, FileText, Download, Eye } from "lucide-react"
+import { Receipt, DollarSign, Clock, User, FileText, Download, Eye } from 'lucide-react'
+import { useState, useEffect } from "react"
+import { formatCurrency, formatTime } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 
 interface Bill {
-  id: number
-  tableId: number
-  tableName: string
-  customerName: string
-  customerPhone: string
-  membershipPlan: string
-  sessionStart: string
-  sessionEnd: string
-  duration: number // in minutes
-  tableRate: number
-  tableAmount: number
-  orders: Array<{
-    id: number
-    itemName: string
-    quantity: number
-    unitPrice: number
-    total: number
-  }>
-  orderTotal: number
-  discount: number
-  discountAmount: number
-  subtotal: number
-  tax: number
-  total: number
-  status: "pending" | "paid" | "overdue"
-  createdAt: string
+  id: string;
+  sessionId: string;
+  tableId: string;
+  tableName: string;
+  customerId: string;
+  customerName: string;
+  membershipType: string;
+  startTime: string;
+  endTime: string;
+  durationMilliseconds: number;
+  hourlyRate: number;
+  tableCharges: number;
+  orderItems: {
+    menuItemId: string;
+    menuItemName: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }[];
+  orderCharges: number;
+  subtotal: number;
+  discountPercentage: number;
+  discountAmount: number;
+  taxRate: number;
+  taxAmount: number;
+  grandTotal: number;
+  status: string; // e.g., "Pending", "Paid"
 }
-
-const mockBills: Bill[] = [
-  {
-    id: 1001,
-    tableId: 1,
-    tableName: "Table 1",
-    customerName: "John Smith",
-    customerPhone: "+1-555-0123",
-    membershipPlan: "premium",
-    sessionStart: "2024-01-08T14:30:00Z",
-    sessionEnd: "2024-01-08T16:45:00Z",
-    duration: 135,
-    tableRate: 25,
-    tableAmount: 56.25,
-    orders: [
-      { id: 1, itemName: "Coffee", quantity: 2, unitPrice: 3.5, total: 7.0 },
-      { id: 2, itemName: "Club Sandwich", quantity: 1, unitPrice: 8.5, total: 8.5 },
-    ],
-    orderTotal: 15.5,
-    discount: 10,
-    discountAmount: 7.18,
-    subtotal: 64.57,
-    tax: 6.46,
-    total: 71.03,
-    status: "paid",
-    createdAt: "2024-01-08T16:45:00Z",
-  },
-  {
-    id: 1002,
-    tableId: 2,
-    tableName: "Table 2",
-    customerName: "Sarah Johnson",
-    customerPhone: "+1-555-0124",
-    membershipPlan: "vip",
-    sessionStart: "2024-01-08T13:00:00Z",
-    sessionEnd: "2024-01-08T15:30:00Z",
-    duration: 150,
-    tableRate: 25,
-    tableAmount: 62.5,
-    orders: [
-      { id: 3, itemName: "Beer", quantity: 2, unitPrice: 4.5, total: 9.0 },
-      { id: 4, itemName: "Fish & Chips", quantity: 1, unitPrice: 12.0, total: 12.0 },
-    ],
-    orderTotal: 21.0,
-    discount: 15,
-    discountAmount: 12.53,
-    subtotal: 70.97,
-    tax: 7.1,
-    total: 78.07,
-    status: "pending",
-    createdAt: "2024-01-08T15:30:00Z",
-  },
-  {
-    id: 1003,
-    tableId: 6,
-    tableName: "Table 6",
-    customerName: "Mike Wilson",
-    customerPhone: "+1-555-0125",
-    membershipPlan: "basic",
-    sessionStart: "2024-01-08T15:00:00Z",
-    sessionEnd: "2024-01-08T16:00:00Z",
-    duration: 60,
-    tableRate: 35,
-    tableAmount: 35.0,
-    orders: [],
-    orderTotal: 0,
-    discount: 5,
-    discountAmount: 1.75,
-    subtotal: 33.25,
-    tax: 3.33,
-    total: 36.58,
-    status: "overdue",
-    createdAt: "2024-01-08T16:00:00Z",
-  },
-]
 
 const membershipPlans = {
   none: { name: "Walk-in", discount: 0, color: "bg-gray-100 text-gray-800" },
@@ -123,48 +52,65 @@ const membershipPlans = {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case "paid":
+    case "Paid":
       return "bg-green-100 text-green-800"
-    case "pending":
+    case "Pending":
       return "bg-yellow-100 text-yellow-800"
-    case "overdue":
+    case "Overdue":
       return "bg-red-100 text-red-800"
     default:
       return "bg-gray-100 text-gray-800"
   }
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  return `${hours}h ${mins}m`
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
 export function BillingSection() {
-  const [bills, setBills] = React.useState<Bill[]>(mockBills)
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [selectedBill, setSelectedBill] = React.useState<Bill | null>(null)
   const [activeTab, setActiveTab] = React.useState("all")
 
+  const fetchBills = async () => {
+    try {
+      const response = await fetch('https://localhost:5001/api/bills');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: Bill[] = await response.json();
+      setBills(data);
+    } catch (e: any) {
+      setError(e.message);
+      toast({
+        title: "Error",
+        description: `Failed to load bills: ${e.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBills();
+    const interval = setInterval(fetchBills, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   const filteredBills = activeTab === "all" ? bills : bills.filter((bill) => bill.status === activeTab)
 
-  const totalRevenue = bills.reduce((sum, bill) => sum + bill.total, 0)
-  const paidBills = bills.filter((bill) => bill.status === "paid").length
-  const pendingBills = bills.filter((bill) => bill.status === "pending").length
-  const overdueBills = bills.filter((bill) => bill.status === "overdue").length
+  const totalRevenue = bills.reduce((sum, bill) => sum + bill.grandTotal, 0)
+  const paidBills = bills.filter((bill) => bill.status === "Paid").length
+  const pendingBills = bills.filter((bill) => bill.status === "Pending").length
+  const overdueBills = bills.filter((bill) => bill.status === "Overdue").length
 
-  const handleMarkAsPaid = (billId: number) => {
-    setBills(bills.map((bill) => (bill.id === billId ? { ...bill, status: "paid" as const } : bill)))
+  const handleMarkAsPaid = (billId: string) => {
+    setBills(bills.map((bill) => (bill.id === billId ? { ...bill, status: "Paid" } : bill)))
   }
+
+  if (loading) return <div className="text-center py-12">Loading bills...</div>;
+  if (error) return <div className="text-center py-12 text-red-500">Error: {error}</div>;
+  if (bills.length === 0) return <div className="text-center py-12 text-muted-foreground">No bills generated yet.</div>;
 
   return (
     <div className="space-y-6">
@@ -236,9 +182,9 @@ export function BillingSection() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="all">All Bills</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="paid">Paid</TabsTrigger>
-              <TabsTrigger value="overdue">Overdue</TabsTrigger>
+              <TabsTrigger value="Pending">Pending</TabsTrigger>
+              <TabsTrigger value="Paid">Paid</TabsTrigger>
+              <TabsTrigger value="Overdue">Overdue</TabsTrigger>
             </TabsList>
             <TabsContent value={activeTab} className="mt-4">
               <Table>
@@ -256,15 +202,15 @@ export function BillingSection() {
                 <TableBody>
                   {filteredBills.map((bill) => (
                     <TableRow key={bill.id}>
-                      <TableCell className="font-medium">#{bill.id}</TableCell>
+                      <TableCell className="font-medium">{bill.id.substring(0, 8)}...</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium">{bill.customerName}</span>
                           <div className="flex items-center gap-1">
                             <Badge
-                              className={membershipPlans[bill.membershipPlan as keyof typeof membershipPlans].color}
+                              className={membershipPlans[bill.membershipType as keyof typeof membershipPlans].color}
                             >
-                              {membershipPlans[bill.membershipPlan as keyof typeof membershipPlans].name}
+                              {membershipPlans[bill.membershipType as keyof typeof membershipPlans].name}
                             </Badge>
                           </div>
                         </div>
@@ -273,14 +219,14 @@ export function BillingSection() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
-                          {formatDuration(bill.duration)}
+                          {formatTime(bill.durationMilliseconds)}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">${bill.total.toFixed(2)}</span>
-                          {bill.discount > 0 && (
-                            <span className="text-xs text-green-600">{bill.discount}% discount applied</span>
+                          <span className="font-medium">${bill.grandTotal.toFixed(2)}</span>
+                          {bill.discountPercentage > 0 && (
+                            <span className="text-xs text-green-600">{bill.discountPercentage}% discount applied</span>
                           )}
                         </div>
                       </TableCell>
@@ -295,7 +241,7 @@ export function BillingSection() {
                           <Button variant="ghost" size="sm">
                             <Download className="h-3 w-3" />
                           </Button>
-                          {bill.status === "pending" && (
+                          {bill.status === "Pending" && (
                             <Button variant="outline" size="sm" onClick={() => handleMarkAsPaid(bill.id)}>
                               Mark Paid
                             </Button>
@@ -330,15 +276,11 @@ export function BillingSection() {
                       <span>{selectedBill.customerName}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Phone:</span>
-                      <span>{selectedBill.customerPhone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Membership:</span>
                       <Badge
-                        className={membershipPlans[selectedBill.membershipPlan as keyof typeof membershipPlans].color}
+                        className={membershipPlans[selectedBill.membershipType as keyof typeof membershipPlans].color}
                       >
-                        {membershipPlans[selectedBill.membershipPlan as keyof typeof membershipPlans].name}
+                        {membershipPlans[selectedBill.membershipType as keyof typeof membershipPlans].name}
                       </Badge>
                     </div>
                   </div>
@@ -352,11 +294,11 @@ export function BillingSection() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Duration:</span>
-                      <span>{formatDuration(selectedBill.duration)}</span>
+                      <span>{formatTime(selectedBill.durationMilliseconds)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Rate:</span>
-                      <span>${selectedBill.tableRate}/hour</span>
+                      <span>${selectedBill.hourlyRate}/hour</span>
                     </div>
                   </div>
                 </div>
@@ -371,19 +313,19 @@ export function BillingSection() {
                 {/* Table Charges */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Table Time ({formatDuration(selectedBill.duration)})</span>
-                    <span>${selectedBill.tableAmount.toFixed(2)}</span>
+                    <span>Table Time ({formatTime(selectedBill.durationMilliseconds)})</span>
+                    <span>${selectedBill.tableCharges.toFixed(2)}</span>
                   </div>
                 </div>
 
                 {/* Orders */}
-                {selectedBill.orders.length > 0 && (
+                {selectedBill.orderItems.length > 0 && (
                   <div className="space-y-2">
                     <h5 className="font-medium text-sm">Food & Beverages</h5>
-                    {selectedBill.orders.map((order) => (
-                      <div key={order.id} className="flex justify-between text-sm">
+                    {selectedBill.orderItems.map((order) => (
+                      <div key={order.menuItemId} className="flex justify-between text-sm">
                         <span>
-                          {order.itemName} × {order.quantity}
+                          {order.menuItemName} × {order.quantity}
                         </span>
                         <span>${order.total.toFixed(2)}</span>
                       </div>
@@ -397,22 +339,22 @@ export function BillingSection() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
-                    <span>${(selectedBill.tableAmount + selectedBill.orderTotal).toFixed(2)}</span>
+                    <span>${(selectedBill.tableCharges + selectedBill.orderCharges).toFixed(2)}</span>
                   </div>
-                  {selectedBill.discount > 0 && (
+                  {selectedBill.discountPercentage > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount ({selectedBill.discount}%)</span>
+                      <span>Discount ({selectedBill.discountPercentage}%)</span>
                       <span>-${selectedBill.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
                     <span>Tax</span>
-                    <span>${selectedBill.tax.toFixed(2)}</span>
+                    <span>${selectedBill.taxAmount.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>${selectedBill.total.toFixed(2)}</span>
+                    <span>${selectedBill.grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -422,7 +364,7 @@ export function BillingSection() {
                   <Download className="h-4 w-4 mr-2" />
                   Download PDF
                 </Button>
-                {selectedBill.status === "pending" && (
+                {selectedBill.status === "Pending" && (
                   <Button onClick={() => handleMarkAsPaid(selectedBill.id)}>Mark as Paid</Button>
                 )}
               </div>
