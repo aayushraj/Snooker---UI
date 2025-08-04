@@ -1,23 +1,16 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Play, Pause, StopCircle, Utensils, Users } from "lucide-react"
-import CustomerCreationDialog from "./customer-creation-dialog"
-import SnookerTableTimer from "./snooker-table-timer"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useEffect } from 'react'
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Search, Play, Pause, StopCircle, Utensils, Users, Settings } from 'lucide-react'
+import CustomerCreationDialog from './customer-creation-dialog'
+import SnookerTableTimer from './snooker-table-timer'
+import { useToast } from '@/components/ui/use-toast'
 
 interface Customer {
   id: string
@@ -35,7 +28,7 @@ interface Session {
   endTime: string | null
   pausedDuration: number // in milliseconds
   pausedAt: string | null
-  status: "Active" | "Paused" | "Ended"
+  status: 'Active' | 'Paused' | 'Ended'
   hourlyRate: number
   discountPercentage: number
   tableCharges: number
@@ -97,12 +90,12 @@ export default function TablesOverview() {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [isCustomerCreationDialogOpen, setIsCustomerCreationDialogOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('All')
   const [currentOrderItems, setCurrentOrderItems] = useState<{ menuItem: MenuItem; quantity: number }[]>([])
   const { toast } = useToast()
 
-  const categories = ["All", "Beverages", "Snacks", "Meals", "Alcohol"]
+  const categories = ['All', 'Beverages', 'Snacks', 'Meals', 'Alcohol']
 
   useEffect(() => {
     fetchData()
@@ -114,9 +107,9 @@ export default function TablesOverview() {
     try {
       setLoading(true)
       const [tablesRes, customersRes, menuRes] = await Promise.all([
-        fetch("https://localhost:5001/api/tables"),
-        fetch("https://localhost:5001/api/customers"),
-        fetch("https://localhost:5001/api/menu"),
+        fetch('https://localhost:5001/api/tables'),
+        fetch('https://localhost:5001/api/customers'),
+        fetch('https://localhost:5001/api/menu'),
       ])
 
       if (!tablesRes.ok) throw new Error(`HTTP error! status: ${tablesRes.status} for tables`)
@@ -132,7 +125,7 @@ export default function TablesOverview() {
       setMenuItems(menuData)
     } catch (err: any) {
       setError(err.message)
-      console.error("Failed to fetch data:", err)
+      console.error('Failed to fetch data:', err)
     } finally {
       setLoading(false)
     }
@@ -147,18 +140,18 @@ export default function TablesOverview() {
   const handleStartSession = async () => {
     if (!selectedTableId || !selectedCustomerId) {
       toast({
-        title: "Missing Information",
-        description: "Please select both a table and a customer.",
-        variant: "destructive",
+        title: 'Missing Information',
+        description: 'Please select both a table and a customer.',
+        variant: 'destructive',
       })
       return
     }
 
     try {
-      const response = await fetch("https://localhost:5001/api/sessions/start", {
-        method: "POST",
+      const response = await fetch('https://localhost:5001/api/sessions/start', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ tableId: selectedTableId, customerId: selectedCustomerId }),
       })
@@ -169,27 +162,27 @@ export default function TablesOverview() {
       }
 
       toast({
-        title: "Session Started!",
-        description: `Table ${tables.find((t) => t.id === selectedTableId)?.name} is now active.`,
-        variant: "default",
+        title: 'Session Started!',
+        description: `Table ${tables.find(t => t.id === selectedTableId)?.name} is now active.`,
+        variant: 'default',
       })
       setIsStartSessionDialogOpen(false)
       fetchData()
     } catch (error: any) {
       toast({
-        title: "Error starting session",
+        title: 'Error starting session',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       })
-      console.error("Error starting session:", error)
+      console.error('Error starting session:', error)
     }
   }
 
-  const handlePauseResumeSession = async (sessionId: string, currentStatus: "Active" | "Paused") => {
-    const action = currentStatus === "Active" ? "pause" : "resume"
+  const handlePauseResumeSession = async (sessionId: string, currentStatus: 'Active' | 'Paused') => {
+    const action = currentStatus === 'Active' ? 'pause' : 'resume'
     try {
       const response = await fetch(`https://localhost:5001/api/sessions/${sessionId}/${action}`, {
-        method: "POST",
+        method: 'POST',
       })
 
       if (!response.ok) {
@@ -197,27 +190,27 @@ export default function TablesOverview() {
       }
 
       toast({
-        title: `Session ${action === "pause" ? "Paused" : "Resumed"}!`,
-        description: `The session has been ${action === "pause" ? "paused" : "resumed"}.`,
-        variant: "default",
+        title: `Session ${action === 'pause' ? 'Paused' : 'Resumed'}!`,
+        description: `The session has been ${action === 'pause' ? 'paused' : 'resumed'}.`,
+        variant: 'default',
       })
       fetchData()
     } catch (error: any) {
       toast({
         title: `Error ${action}ing session`,
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       })
       console.error(`Error ${action}ing session:`, error)
     }
   }
 
   const handleEndSession = async (sessionId: string) => {
-    if (!window.confirm("Are you sure you want to end this session and generate a bill?")) return
+    if (!window.confirm('Are you sure you want to end this session and generate a bill?')) return
 
     try {
       const response = await fetch(`https://localhost:5001/api/sessions/${sessionId}/end`, {
-        method: "POST",
+        method: 'POST',
       })
 
       if (!response.ok) {
@@ -227,19 +220,19 @@ export default function TablesOverview() {
 
       const bill = await response.json()
       toast({
-        title: "Session Ended & Bill Generated!",
+        title: 'Session Ended & Bill Generated!',
         description: `Total amount: $${bill.grandTotal.toFixed(2)}.`,
-        variant: "default",
+        variant: 'default',
         duration: 5000,
       })
       fetchData()
     } catch (error: any) {
       toast({
-        title: "Error ending session",
+        title: 'Error ending session',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       })
-      console.error("Error ending session:", error)
+      console.error('Error ending session:', error)
     }
   }
 
@@ -250,8 +243,8 @@ export default function TablesOverview() {
   }
 
   const handleQuantityChange = (menuItem: MenuItem, change: number) => {
-    setCurrentOrderItems((prevItems) => {
-      const existingItemIndex = prevItems.findIndex((item) => item.menuItem.id === menuItem.id)
+    setCurrentOrderItems(prevItems => {
+      const existingItemIndex = prevItems.findIndex(item => item.menuItem.id === menuItem.id)
       if (existingItemIndex > -1) {
         const updatedItems = [...prevItems]
         const newQuantity = updatedItems[existingItemIndex].quantity + change
@@ -271,37 +264,37 @@ export default function TablesOverview() {
   const handlePlaceOrder = async () => {
     if (!selectedTableId) return
 
-    const table = tables.find((t) => t.id === selectedTableId)
+    const table = tables.find(t => t.id === selectedTableId)
     const sessionId = table?.currentSession?.id
 
     if (!sessionId) {
       toast({
-        title: "Error",
-        description: "No active session found for this table.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'No active session found for this table.',
+        variant: 'destructive',
       })
       return
     }
 
     if (currentOrderItems.length === 0) {
       toast({
-        title: "No Items",
-        description: "Please add items to your order.",
-        variant: "destructive",
+        title: 'No Items',
+        description: 'Please add items to your order.',
+        variant: 'destructive',
       })
       return
     }
 
-    const orderItemsPayload = currentOrderItems.map((item) => ({
+    const orderItemsPayload = currentOrderItems.map(item => ({
       menuItemId: item.menuItem.id,
       quantity: item.quantity,
     }))
 
     try {
-      const response = await fetch("https://localhost:5001/api/orders", {
-        method: "POST",
+      const response = await fetch('https://localhost:5001/api/orders', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ sessionId, items: orderItemsPayload }),
       })
@@ -312,38 +305,37 @@ export default function TablesOverview() {
       }
 
       toast({
-        title: "Order Placed!",
+        title: 'Order Placed!',
         description: `Order for Table ${table?.name} has been placed.`,
-        variant: "default",
+        variant: 'default',
       })
       setIsOrderDialogOpen(false)
       fetchData() // Refresh data to show updated order charges if applicable
     } catch (error: any) {
       toast({
-        title: "Error placing order",
+        title: 'Error placing order',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       })
-      console.error("Error placing order:", error)
+      console.error('Error placing order:', error)
     }
   }
 
-  const filteredMenuItems = menuItems.filter(
-    (item) => item.isAvailable && (selectedCategory === "All" || item.category === selectedCategory),
+  const filteredMenuItems = menuItems.filter(item =>
+    item.isAvailable && (selectedCategory === 'All' || item.category === selectedCategory)
   )
 
   const calculateOrderTotal = () => {
     return currentOrderItems.reduce((total, item) => total + item.menuItem.price * item.quantity, 0)
   }
 
-  const filteredTables = tables.filter((table) => {
+  const filteredTables = tables.filter(table => {
     const lowerCaseSearchTerm = searchTerm.toLowerCase()
     const matchesName = table.name.toLowerCase().includes(lowerCaseSearchTerm)
     const matchesLocation = table.location.toLowerCase().includes(lowerCaseSearchTerm)
     const matchesCustomer = table.currentSession?.customer?.name.toLowerCase().includes(lowerCaseSearchTerm)
-    const matchesStatus =
-      table.currentSession?.status.toLowerCase().includes(lowerCaseSearchTerm) ||
-      (table.currentSession === null && "available".includes(lowerCaseSearchTerm))
+    const matchesStatus = table.currentSession?.status.toLowerCase().includes(lowerCaseSearchTerm) ||
+                          (table.currentSession === null && 'available'.includes(lowerCaseSearchTerm))
 
     return matchesName || matchesLocation || matchesCustomer || matchesStatus
   })
@@ -367,7 +359,7 @@ export default function TablesOverview() {
         </div>
       </div>
 
-      {filteredTables.length === 0 && searchTerm !== "" ? (
+      {filteredTables.length === 0 && searchTerm !== '' ? (
         <div className="text-center text-gray-500 py-8">No tables match your search criteria.</div>
       ) : filteredTables.length === 0 ? (
         <div className="text-center text-gray-500 py-8">No tables available. Please add tables in settings.</div>
@@ -377,16 +369,12 @@ export default function TablesOverview() {
             <Card key={table.id} className="shadow-lg flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-xl font-semibold">{table.name}</CardTitle>
-                <div
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    table.currentSession?.status === "Active"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : table.currentSession?.status === "Paused"
-                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                  }`}
-                >
-                  {table.currentSession ? table.currentSession.status : "Available"}
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  table.currentSession?.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  table.currentSession?.status === 'Paused' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                }`}>
+                  {table.currentSession ? table.currentSession.status : 'Available'}
                 </div>
               </CardHeader>
               <CardContent className="flex-grow space-y-2">
@@ -394,9 +382,7 @@ export default function TablesOverview() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Hourly Rate: ${table.hourlyRate.toFixed(2)}</p>
                 {table.currentSession && (
                   <>
-                    <p className="text-md font-medium">
-                      Customer: {table.currentSession.customer.name} ({table.currentSession.customer.membershipType})
-                    </p>
+                    <p className="text-md font-medium">Customer: {table.currentSession.customer.name} ({table.currentSession.customer.membershipType})</p>
                     <div className="flex items-center justify-between">
                       <span className="text-md font-medium">Time:</span>
                       <SnookerTableTimer
@@ -420,7 +406,7 @@ export default function TablesOverview() {
                         variant="outline"
                         onClick={() => handlePauseResumeSession(table.currentSession!.id, table.currentSession!.status)}
                       >
-                        {table.currentSession.status === "Active" ? (
+                        {table.currentSession.status === 'Active' ? (
                           <>
                             <Pause className="mr-2 h-4 w-4" /> Pause
                           </>
@@ -453,15 +439,17 @@ export default function TablesOverview() {
       <Dialog open={isStartSessionDialogOpen} onOpenChange={setIsStartSessionDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Start Session for Table {tables.find((t) => t.id === selectedTableId)?.name}</DialogTitle>
-            <DialogDescription>Select a customer to start a new session.</DialogDescription>
+            <DialogTitle>Start Session for Table {tables.find(t => t.id === selectedTableId)?.name}</DialogTitle>
+            <DialogDescription>
+              Select a customer to start a new session.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="customer" className="text-right">
                 Customer
               </Label>
-              <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId || ""}>
+              <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId || ''}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
@@ -493,8 +481,10 @@ export default function TablesOverview() {
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Order Food for Table {tables.find((t) => t.id === selectedTableId)?.name}</DialogTitle>
-            <DialogDescription>Select menu items and quantities for the current session.</DialogDescription>
+            <DialogTitle>Order Food for Table {tables.find(t => t.id === selectedTableId)?.name}</DialogTitle>
+            <DialogDescription>
+              Select menu items and quantities for the current session.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-hidden">
             {/* Menu Items Section */}
@@ -505,10 +495,8 @@ export default function TablesOverview() {
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -516,30 +504,20 @@ export default function TablesOverview() {
                 {filteredMenuItems.length === 0 ? (
                   <p className="text-gray-500 text-sm">No items in this category or no items available.</p>
                 ) : (
-                  filteredMenuItems.map((item) => (
+                  filteredMenuItems.map(item => (
                     <div key={item.id} className="flex items-center justify-between p-2 border rounded-md">
                       <div>
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7 bg-transparent"
-                          onClick={() => handleQuantityChange(item, -1)}
-                        >
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item, -1)}>
                           -
                         </Button>
                         <span className="font-medium w-6 text-center">
-                          {currentOrderItems.find((orderItem) => orderItem.menuItem.id === item.id)?.quantity || 0}
+                          {currentOrderItems.find(orderItem => orderItem.menuItem.id === item.id)?.quantity || 0}
                         </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7 bg-transparent"
-                          onClick={() => handleQuantityChange(item, 1)}
-                        >
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item, 1)}>
                           +
                         </Button>
                       </div>
@@ -556,13 +534,11 @@ export default function TablesOverview() {
                 {currentOrderItems.length === 0 ? (
                   <p className="text-gray-500 text-sm">No items added to order yet.</p>
                 ) : (
-                  currentOrderItems.map((item) => (
+                  currentOrderItems.map(item => (
                     <div key={item.menuItem.id} className="flex items-center justify-between p-2 border rounded-md">
                       <div>
                         <p className="font-medium">{item.menuItem.name}</p>
-                        <p className="text-sm text-gray-500">
-                          ${item.menuItem.price.toFixed(2)} x {item.quantity}
-                        </p>
+                        <p className="text-sm text-gray-500">${item.menuItem.price.toFixed(2)} x {item.quantity}</p>
                       </div>
                       <p className="font-medium">${(item.menuItem.price * item.quantity).toFixed(2)}</p>
                     </div>
@@ -590,7 +566,7 @@ export default function TablesOverview() {
         isOpen={isCustomerCreationDialogOpen}
         onClose={() => setIsCustomerCreationDialogOpen(false)}
         onCustomerCreated={(newCustomer) => {
-          setCustomers((prev) => [...prev, newCustomer])
+          setCustomers(prev => [...prev, newCustomer])
           setSelectedCustomerId(newCustomer.id) // Auto-select new customer
           setIsCustomerCreationDialogOpen(false)
         }}

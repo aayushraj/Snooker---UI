@@ -1,20 +1,13 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
-import { PlusCircle, Edit, Trash2 } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/components/ui/use-toast'
+import { PlusCircle, Edit, Trash2 } from 'lucide-react'
 
 interface Table {
   id: string
@@ -29,9 +22,9 @@ export default function TableManagement() {
   const [error, setError] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentTable, setCurrentTable] = useState<Table | null>(null)
-  const [name, setName] = useState("")
+  const [name, setName] = useState('')
   const [hourlyRate, setHourlyRate] = useState<number>(0)
-  const [location, setLocation] = useState("")
+  const [location, setLocation] = useState('')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -41,7 +34,7 @@ export default function TableManagement() {
   const fetchTables = async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://localhost:5001/api/tables")
+      const response = await fetch('https://localhost:5001/api/tables')
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -49,7 +42,7 @@ export default function TableManagement() {
       setTables(data)
     } catch (err: any) {
       setError(err.message)
-      console.error("Failed to fetch tables:", err)
+      console.error('Failed to fetch tables:', err)
     } finally {
       setLoading(false)
     }
@@ -57,9 +50,9 @@ export default function TableManagement() {
 
   const handleAddTable = () => {
     setCurrentTable(null)
-    setName("")
+    setName('')
     setHourlyRate(0)
-    setLocation("")
+    setLocation('')
     setIsDialogOpen(true)
   }
 
@@ -72,11 +65,11 @@ export default function TableManagement() {
   }
 
   const handleDeleteTable = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this table? This action cannot be undone.")) return
+    if (!window.confirm('Are you sure you want to delete this table? This action cannot be undone.')) return
 
     try {
       const response = await fetch(`https://localhost:5001/api/tables/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       })
 
       if (!response.ok) {
@@ -84,34 +77,32 @@ export default function TableManagement() {
       }
 
       toast({
-        title: "Table Deleted!",
-        description: "The table has been successfully removed.",
-        variant: "default",
+        title: 'Table Deleted!',
+        description: 'The table has been successfully removed.',
+        variant: 'default',
       })
       fetchTables()
     } catch (error: any) {
       toast({
-        title: "Error deleting table",
+        title: 'Error deleting table',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       })
-      console.error("Error deleting table:", error)
+      console.error('Error deleting table:', error)
     }
   }
 
   const handleSubmit = async () => {
     setLoading(true)
     const tableData = { name, hourlyRate, location }
-    const method = currentTable ? "PUT" : "POST"
-    const url = currentTable
-      ? `https://localhost:5001/api/tables/${currentTable.id}`
-      : "https://localhost:5001/api/tables"
+    const method = currentTable ? 'PUT' : 'POST'
+    const url = currentTable ? `https://localhost:5001/api/tables/${currentTable.id}` : 'https://localhost:5001/api/tables'
 
     try {
       const response = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(tableData),
       })
@@ -121,19 +112,19 @@ export default function TableManagement() {
       }
 
       toast({
-        title: currentTable ? "Table Updated!" : "Table Added!",
-        description: `Table "${name}" has been ${currentTable ? "updated" : "added"} successfully.`,
-        variant: "default",
+        title: currentTable ? 'Table Updated!' : 'Table Added!',
+        description: `Table "${name}" has been ${currentTable ? 'updated' : 'added'} successfully.`,
+        variant: 'default',
       })
       setIsDialogOpen(false)
       fetchTables()
     } catch (error: any) {
       toast({
-        title: `Error ${currentTable ? "updating" : "adding"} table`,
+        title: `Error ${currentTable ? 'updating' : 'adding'} table`,
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       })
-      console.error(`Error ${currentTable ? "updating" : "adding"} table:`, error)
+      console.error(`Error ${currentTable ? 'updating' : 'adding'} table:`, error)
     } finally {
       setLoading(false)
     }
@@ -180,9 +171,9 @@ export default function TableManagement() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{currentTable ? "Edit Table" : "Add New Table"}</DialogTitle>
+            <DialogTitle>{currentTable ? 'Edit Table' : 'Add New Table'}</DialogTitle>
             <DialogDescription>
-              {currentTable ? "Modify the details of the table." : "Enter details for a new snooker table."}
+              {currentTable ? 'Modify the details of the table.' : 'Enter details for a new snooker table.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -196,26 +187,13 @@ export default function TableManagement() {
               <Label htmlFor="hourlyRate" className="text-right">
                 Hourly Rate
               </Label>
-              <Input
-                id="hourlyRate"
-                type="number"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(Number.parseFloat(e.target.value))}
-                className="col-span-3"
-                required
-                step="0.01"
-              />
+              <Input id="hourlyRate" type="number" value={hourlyRate} onChange={(e) => setHourlyRate(parseFloat(e.target.value))} className="col-span-3" required step="0.01" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="location" className="text-right">
                 Location
               </Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="col-span-3"
-              />
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} className="col-span-3" />
             </div>
           </div>
           <DialogFooter>
@@ -223,7 +201,7 @@ export default function TableManagement() {
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={loading || !name || hourlyRate <= 0}>
-              {loading ? "Saving..." : currentTable ? "Save Changes" : "Add Table"}
+              {loading ? 'Saving...' : (currentTable ? 'Save Changes' : 'Add Table')}
             </Button>
           </DialogFooter>
         </DialogContent>

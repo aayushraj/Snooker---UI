@@ -1,6 +1,3 @@
-/* This file is not used by the Next.js App Router.
-   All global styles should be in app/globals.css */
-
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -78,6 +75,8 @@
 }
 
 @theme inline {
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
