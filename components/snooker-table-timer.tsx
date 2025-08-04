@@ -8,16 +8,22 @@ import { Play, Pause, Square, Clock, Users } from "lucide-react"
 
 interface SnookerTableTimerProps {
   tableId: number
+  searchQuery?: string
+  activeFilter?: "all" | "active" | "paused" | "available" | "reserved"
 }
 
 type TableStatus = "available" | "occupied" | "paused" | "reserved"
 
-export function SnookerTableTimer({ tableId }: SnookerTableTimerProps) {
+export function SnookerTableTimer({ tableId, searchQuery = "", activeFilter = "all" }: SnookerTableTimerProps) {
   const [isRunning, setIsRunning] = React.useState(false)
   const [time, setTime] = React.useState(0)
-  const [status, setStatus] = React.useState<TableStatus>(
-    Math.random() > 0.6 ? "available" : Math.random() > 0.5 ? "occupied" : "reserved",
-  )
+  const [status, setStatus] = React.useState<TableStatus>(() => {
+    const rand = Math.random()
+    if (rand > 0.6) return "available"
+    if (rand > 0.4) return "occupied"
+    if (rand > 0.2) return "paused"
+    return "reserved"
+  })
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout | null = null
@@ -34,6 +40,24 @@ export function SnookerTableTimer({ tableId }: SnookerTableTimerProps) {
       if (interval) clearInterval(interval)
     }
   }, [isRunning, time, status])
+
+  const shouldShow = React.useMemo(() => {
+    // Search filter
+    if (searchQuery && !`Table ${tableId}`.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+
+    // Status filter
+    if (activeFilter !== "all" && status !== activeFilter) {
+      return false
+    }
+
+    return true
+  }, [tableId, searchQuery, activeFilter, status])
+
+  if (!shouldShow) {
+    return null
+  }
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
@@ -83,6 +107,8 @@ export function SnookerTableTimer({ tableId }: SnookerTableTimerProps) {
         return "default"
       case "occupied":
         return "destructive"
+      case "paused":
+        return "secondary"
       case "reserved":
         return "secondary"
       default:

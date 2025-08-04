@@ -1,5 +1,6 @@
 "use client"
-import { BarChart3, Calendar, CreditCard, Home, Settings, Table, Users, Bell, Search } from "lucide-react"
+import * as React from "react"
+import { BarChart3, Calendar, CreditCard, Home, Settings, Table, Users, Bell, Search, ShoppingCart } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DashboardStats } from "@/components/dashboard-stats"
@@ -27,48 +28,59 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { SnookerTableTimer } from "@/components/snooker-table-timer"
+import { TablesOverview } from "@/components/tables-overview"
+import { BillingSection } from "@/components/billing-section"
+import { TableManagement } from "@/components/table-management"
+import { MenuManagement } from "@/components/menu-management"
 
 const navigationItems = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "#dashboard",
     icon: Home,
     isActive: true,
   },
   {
     title: "Tables",
-    url: "#",
+    url: "#tables",
     icon: Table,
   },
   {
+    title: "Orders",
+    url: "#orders",
+    icon: ShoppingCart,
+  },
+  {
     title: "Members",
-    url: "#",
+    url: "#members",
     icon: Users,
   },
   {
     title: "Bookings",
-    url: "#",
+    url: "#bookings",
     icon: Calendar,
   },
   {
     title: "Billing",
-    url: "#",
+    url: "#billing",
     icon: CreditCard,
   },
   {
     title: "Analytics",
-    url: "#",
+    url: "#analytics",
     icon: BarChart3,
   },
   {
     title: "Settings",
-    url: "#",
+    url: "#settings",
     icon: Settings,
   },
 ]
 
-function AppSidebar() {
+function AppSidebar({
+  currentSection,
+  setCurrentSection,
+}: { currentSection: string; setCurrentSection: (section: string) => void }) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -95,11 +107,12 @@ function AppSidebar() {
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={item.isActive}>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton
+                    isActive={currentSection === item.url.replace("#", "")}
+                    onClick={() => setCurrentSection(item.url.replace("#", ""))}
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -156,48 +169,37 @@ function TopNavbar() {
 }
 
 export function SnookerClubLayout() {
+  const [currentSection, setCurrentSection] = React.useState("dashboard")
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar currentSection={currentSection} setCurrentSection={setCurrentSection} />
       <SidebarInset>
         <TopNavbar />
         <div className="flex flex-1 flex-col gap-6 p-4">
-          {/* Dashboard Statistics */}
-          <DashboardStats />
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Table Overview</h1>
-              <p className="text-muted-foreground">Monitor and manage all snooker tables in real-time</p>
+          {currentSection === "dashboard" && <DashboardStats />}
+          {currentSection === "tables" && <TablesOverview />}
+          {currentSection === "billing" && <BillingSection />}
+          {currentSection === "orders" && <MenuManagement />}
+          {currentSection === "members" && (
+            <div className="text-center py-12">
+              <h2 className="text-xl font-semibold mb-2">Members Management</h2>
+              <p className="text-muted-foreground">Coming soon...</p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span>Available</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span>Active</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                  <span>Paused</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span>Reserved</span>
-                </div>
-              </div>
+          )}
+          {currentSection === "bookings" && (
+            <div className="text-center py-12">
+              <h2 className="text-xl font-semibold mb-2">Bookings Management</h2>
+              <p className="text-muted-foreground">Coming soon...</p>
             </div>
-          </div>
-
-          {/* Responsive Grid: 4x4 on desktop, 2x8 on tablet, 1x16 on mobile */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 16 }, (_, i) => (
-              <SnookerTableTimer key={i + 1} tableId={i + 1} />
-            ))}
-          </div>
+          )}
+          {currentSection === "analytics" && (
+            <div className="text-center py-12">
+              <h2 className="text-xl font-semibold mb-2">Analytics Dashboard</h2>
+              <p className="text-muted-foreground">Coming soon...</p>
+            </div>
+          )}
+          {currentSection === "settings" && <TableManagement />}
         </div>
       </SidebarInset>
     </SidebarProvider>
