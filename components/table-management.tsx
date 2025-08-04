@@ -1,211 +1,196 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Trash2, Edit, PlusCircle } from 'lucide-react'
-import { formatCurrency } from "@/lib/utils"
+import { PlusCircle, Edit, Trash2 } from "lucide-react"
 
-interface TableConfig {
-  id: string;
-  name: string;
-  hourlyRate: number;
-  location: string;
+interface Table {
+  id: string
+  name: string
+  hourlyRate: number
+  location: string
 }
 
-export function TableManagement() {
-  const [tables, setTables] = useState<TableConfig[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTable, setCurrentTable] = useState<TableConfig | null>(null);
-  const [tableName, setTableName] = useState("");
-  const [hourlyRate, setHourlyRate] = useState(0);
-  const [location, setLocation] = useState("");
-  const { toast } = useToast();
+export default function TableManagement() {
+  const [tables, setTables] = useState<Table[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentTable, setCurrentTable] = useState<Table | null>(null)
+  const [name, setName] = useState("")
+  const [hourlyRate, setHourlyRate] = useState<number>(0)
+  const [location, setLocation] = useState("")
+  const { toast } = useToast()
+
+  useEffect(() => {
+    fetchTables()
+  }, [])
 
   const fetchTables = async () => {
     try {
-      const response = await fetch('https://localhost:5001/api/tables');
+      setLoading(true)
+      const response = await fetch("https://localhost:5001/api/tables")
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-      const data: TableConfig[] = await response.json();
-      setTables(data);
-    } catch (e: any) {
-      setError(e.message);
+      const data: Table[] = await response.json()
+      setTables(data)
+    } catch (err: any) {
+      setError(err.message)
+      console.error("Failed to fetch tables:", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchTables();
-  }, []);
+  const handleAddTable = () => {
+    setCurrentTable(null)
+    setName("")
+    setHourlyRate(0)
+    setLocation("")
+    setIsDialogOpen(true)
+  }
 
-  const handleOpenDialog = (table?: TableConfig) => {
-    setCurrentTable(table || null);
-    setTableName(table?.name || "");
-    setHourlyRate(table?.hourlyRate || 0);
-    setLocation(table?.location || "");
-    setIsDialogOpen(true);
-  };
+  const handleEditTable = (table: Table) => {
+    setCurrentTable(table)
+    setName(table.name)
+    setHourlyRate(table.hourlyRate)
+    setLocation(table.location)
+    setIsDialogOpen(true)
+  }
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setCurrentTable(null);
-    setTableName("");
-    setHourlyRate(0);
-    setLocation("");
-  };
+  const handleDeleteTable = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this table? This action cannot be undone.")) return
 
-  const handleSubmit = async () => {
-    if (!tableName.trim() || hourlyRate <= 0 || !location.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all fields correctly.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const tableData = { name: tableName, hourlyRate, location };
-    let response;
-    let method;
-    let url;
-
-    if (currentTable) {
-      // Update existing table
-      method = 'PUT';
-      url = `https://localhost:5001/api/tables/${currentTable.id}`;
-      response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentTable.id, ...tableData }),
-      });
-    } else {
-      // Create new table
-      method = 'POST';
-      url = 'https://localhost:5001/api/tables';
-      response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tableData),
-      });
-    }
-
-    if (response.ok) {
-      toast({
-        title: "Success",
-        description: `Table ${currentTable ? "updated" : "created"} successfully.`,
-      });
-      fetchTables();
-      handleCloseDialog();
-    } else {
-      const errorData = await response.json();
-      toast({
-        title: "Error",
-        description: `Failed to ${currentTable ? "update" : "create"} table: ${errorData.message || response.statusText}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this table?")) {
-      return;
-    }
     try {
       const response = await fetch(`https://localhost:5001/api/tables/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Table deleted successfully.",
-        });
-        fetchTables();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || response.statusText);
-      }
-    } catch (e: any) {
-      toast({
-        title: "Error",
-        description: `Failed to delete table: ${e.message}`,
-        variant: "destructive",
-      });
-    }
-  };
+        method: "DELETE",
+      })
 
-  if (loading) return <div className="text-center py-12">Loading table configurations...</div>;
-  if (error) return <div className="text-center py-12 text-red-500">Error: {error}</div>;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      toast({
+        title: "Table Deleted!",
+        description: "The table has been successfully removed.",
+        variant: "default",
+      })
+      fetchTables()
+    } catch (error: any) {
+      toast({
+        title: "Error deleting table",
+        description: error.message,
+        variant: "destructive",
+      })
+      console.error("Error deleting table:", error)
+    }
+  }
+
+  const handleSubmit = async () => {
+    setLoading(true)
+    const tableData = { name, hourlyRate, location }
+    const method = currentTable ? "PUT" : "POST"
+    const url = currentTable
+      ? `https://localhost:5001/api/tables/${currentTable.id}`
+      : "https://localhost:5001/api/tables"
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tableData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      toast({
+        title: currentTable ? "Table Updated!" : "Table Added!",
+        description: `Table "${name}" has been ${currentTable ? "updated" : "added"} successfully.`,
+        variant: "default",
+      })
+      setIsDialogOpen(false)
+      fetchTables()
+    } catch (error: any) {
+      toast({
+        title: `Error ${currentTable ? "updating" : "adding"} table`,
+        description: error.message,
+        variant: "destructive",
+      })
+      console.error(`Error ${currentTable ? "updating" : "adding"} table:`, error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) return <div className="text-center py-8">Loading tables...</div>
+  if (error) return <div className="text-center py-8 text-red-500">Error: {error}</div>
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Table Configurations</CardTitle>
-        <Button onClick={() => handleOpenDialog()}>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Table Configuration</h1>
+        <Button onClick={handleAddTable}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New Table
         </Button>
-      </CardHeader>
-      <CardContent>
-        {tables.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No tables configured yet.</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Hourly Rate</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tables.map((table) => (
-                <TableRow key={table.id}>
-                  <TableCell className="font-medium">{table.name}</TableCell>
-                  <TableCell>{formatCurrency(table.hourlyRate)}</TableCell>
-                  <TableCell>{table.location}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(table)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(table.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
+      </div>
+
+      {tables.length === 0 ? (
+        <div className="text-center text-gray-500">No tables configured yet. Add some to get started!</div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {tables.map((table) => (
+            <Card key={table.id} className="shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-semibold">{table.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleEditTable(table)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteTable(table.id)}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Location: {table.location}</p>
+                <p className="text-lg font-bold">Hourly Rate: ${table.hourlyRate.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{currentTable ? "Edit Table" : "Add New Table"}</DialogTitle>
+            <DialogDescription>
+              {currentTable ? "Modify the details of the table." : "Enter details for a new snooker table."}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="tableName" className="text-right">
-                Table Name
+              <Label htmlFor="name" className="text-right">
+                Name
               </Label>
-              <Input
-                id="tableName"
-                value={tableName}
-                onChange={(e) => setTableName(e.target.value)}
-                className="col-span-3"
-              />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="hourlyRate" className="text-right">
@@ -215,8 +200,10 @@ export function TableManagement() {
                 id="hourlyRate"
                 type="number"
                 value={hourlyRate}
-                onChange={(e) => setHourlyRate(parseFloat(e.target.value))}
+                onChange={(e) => setHourlyRate(Number.parseFloat(e.target.value))}
                 className="col-span-3"
+                required
+                step="0.01"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -232,15 +219,15 @@ export function TableManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              {currentTable ? "Save Changes" : "Add Table"}
+            <Button onClick={handleSubmit} disabled={loading || !name || hourlyRate <= 0}>
+              {loading ? "Saving..." : currentTable ? "Save Changes" : "Add Table"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
-  );
+    </div>
+  )
 }

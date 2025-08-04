@@ -1,7 +1,5 @@
-"use client"
+import SnookerClubLayout from "@/components/snooker-club-layout"
 
-import { SnookerClubLayout } from "@/components/snooker-club-layout"
-
-export default function HomePage() {
+export default function Home() {
   return <SnookerClubLayout />
 }

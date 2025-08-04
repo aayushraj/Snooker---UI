@@ -1,13 +1,29 @@
-.env
-.env.local
-.next/
-out/
+# Gitignore for Snooker Club Management System
+
+# Node.js
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-.DS_Store
-*.sqlite
-*.sqlite-journal
+.next/
+out/ # Next.js static export output
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vercel/
+*.tgz
+
+# Electron
+dist/ # Electron-builder output
+build/ # Electron build artifacts
+
+# .NET
 bin/
 obj/
+*.db # SQLite database file
+*.db-shm
+*.db-wal
+appsettings.Development.json
+appsettings.Production.json

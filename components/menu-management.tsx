@@ -1,317 +1,277 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
-import { Trash2, Edit, PlusCircle } from 'lucide-react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { formatCurrency } from "@/lib/utils"
+import { PlusCircle, Edit, Trash2 } from "lucide-react"
 
 interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  isAvailable: boolean;
+  id: string
+  name: string
+  description: string
+  price: number
+  category: string
+  isAvailable: boolean
 }
 
-const menuCategories = ["Beverages", "Snacks", "Meals", "Alcohol"];
+export default function MenuManagement() {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem | null>(null)
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [price, setPrice] = useState<number>(0)
+  const [category, setCategory] = useState("Beverages")
+  const [isAvailable, setIsAvailable] = useState(true)
+  const { toast } = useToast()
 
-export function MenuManagement() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem | null>(null);
-  const [itemName, setItemName] = useState("");
-  const [itemDescription, setItemDescription] = useState("");
-  const [itemPrice, setItemPrice] = useState(0);
-  const [itemCategory, setItemCategory] = useState(menuCategories[0]);
-  const [isItemAvailable, setIsItemAvailable] = useState(true);
-  const [activeTab, setActiveTab] = useState(menuCategories[0]);
-  const { toast } = useToast();
+  useEffect(() => {
+    fetchMenuItems()
+  }, [])
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch('https://localhost:5001/api/menu');
+      setLoading(true)
+      const response = await fetch("https://localhost:5001/api/menu")
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-      const data: MenuItem[] = await response.json();
-      setMenuItems(data);
-    } catch (e: any) {
-      setError(e.message);
+      const data: MenuItem[] = await response.json()
+      setMenuItems(data)
+    } catch (err: any) {
+      setError(err.message)
+      console.error("Failed to fetch menu items:", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchMenuItems();
-  }, []);
+  const handleAddMenuItem = () => {
+    setCurrentMenuItem(null)
+    setName("")
+    setDescription("")
+    setPrice(0)
+    setCategory("Beverages")
+    setIsAvailable(true)
+    setIsDialogOpen(true)
+  }
 
-  const handleOpenDialog = (item?: MenuItem) => {
-    setCurrentMenuItem(item || null);
-    setItemName(item?.name || "");
-    setItemDescription(item?.description || "");
-    setItemPrice(item?.price || 0);
-    setItemCategory(item?.category || menuCategories[0]);
-    setIsItemAvailable(item?.isAvailable ?? true);
-    setIsDialogOpen(true);
-  };
+  const handleEditMenuItem = (item: MenuItem) => {
+    setCurrentMenuItem(item)
+    setName(item.name)
+    setDescription(item.description)
+    setPrice(item.price)
+    setCategory(item.category)
+    setIsAvailable(item.isAvailable)
+    setIsDialogOpen(true)
+  }
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setCurrentMenuItem(null);
-    setItemName("");
-    setItemDescription("");
-    setItemPrice(0);
-    setItemCategory(menuCategories[0]);
-    setIsItemAvailable(true);
-  };
+  const handleDeleteMenuItem = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this menu item?")) return
 
-  const handleSubmit = async () => {
-    if (!itemName.trim() || itemPrice <= 0 || !itemCategory.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields correctly.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const itemData = {
-      name: itemName,
-      description: itemDescription,
-      price: itemPrice,
-      category: itemCategory,
-      isAvailable: isItemAvailable,
-    };
-    let response;
-    let method;
-    let url;
-
-    if (currentMenuItem) {
-      // Update existing item
-      method = 'PUT';
-      url = `https://localhost:5001/api/menu/${currentMenuItem.id}`;
-      response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentMenuItem.id, ...itemData }),
-      });
-    } else {
-      // Create new item
-      method = 'POST';
-      url = 'https://localhost:5001/api/menu';
-      response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemData),
-      });
-    }
-
-    if (response.ok) {
-      toast({
-        title: "Success",
-        description: `Menu item ${currentMenuItem ? "updated" : "created"} successfully.`,
-      });
-      fetchMenuItems();
-      handleCloseDialog();
-    } else {
-      const errorData = await response.json();
-      toast({
-        title: "Error",
-        description: `Failed to ${currentMenuItem ? "update" : "create"} menu item: ${errorData.message || response.statusText}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this menu item?")) {
-      return;
-    }
     try {
       const response = await fetch(`https://localhost:5001/api/menu/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Menu item deleted successfully.",
-        });
-        fetchMenuItems();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || response.statusText);
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-    } catch (e: any) {
+
       toast({
-        title: "Error",
-        description: `Failed to delete menu item: ${e.message}`,
+        title: "Menu Item Deleted!",
+        description: "The menu item has been successfully removed.",
+        variant: "default",
+      })
+      fetchMenuItems()
+    } catch (error: any) {
+      toast({
+        title: "Error deleting menu item",
+        description: error.message,
         variant: "destructive",
-      });
+      })
+      console.error("Error deleting menu item:", error)
     }
-  };
+  }
 
-  const filteredItems = menuItems.filter(item => item.category === activeTab);
+  const handleSubmit = async () => {
+    setLoading(true)
+    const itemData = { name, description, price, category, isAvailable }
+    const method = currentMenuItem ? "PUT" : "POST"
+    const url = currentMenuItem
+      ? `https://localhost:5001/api/menu/${currentMenuItem.id}`
+      : "https://localhost:5001/api/menu"
 
-  if (loading) return <div className="text-center py-12">Loading menu items...</div>;
-  if (error) return <div className="text-center py-12 text-red-500">Error: {error}</div>;
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(itemData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      toast({
+        title: currentMenuItem ? "Menu Item Updated!" : "Menu Item Added!",
+        description: `"${name}" has been ${currentMenuItem ? "updated" : "added"} successfully.`,
+        variant: "default",
+      })
+      setIsDialogOpen(false)
+      fetchMenuItems()
+    } catch (error: any) {
+      toast({
+        title: `Error ${currentMenuItem ? "updating" : "adding"} menu item`,
+        description: error.message,
+        variant: "destructive",
+      })
+      console.error(`Error ${currentMenuItem ? "updating" : "adding"} menu item:`, error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const categories = ["Beverages", "Snacks", "Meals", "Alcohol"]
+
+  if (loading) return <div className="text-center py-8">Loading menu...</div>
+  if (error) return <div className="text-center py-8 text-red-500">Error: {error}</div>
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Menu Management</CardTitle>
-        <Button onClick={() => handleOpenDialog()}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Menu Management</h1>
+        <Button onClick={handleAddMenuItem}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Menu Item
         </Button>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            {menuCategories.map(category => (
-              <TabsTrigger key={category} value={category}>
-                {category}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {menuCategories.map(category => (
-            <TabsContent key={category} value={category} className="mt-4">
-              {filteredItems.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No {category.toLowerCase()} items yet.</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Available</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{item.description}</TableCell>
-                        <TableCell>{formatCurrency(item.price)}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {item.isAvailable ? 'Yes' : 'No'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(item)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TabsContent>
+      </div>
+
+      {menuItems.length === 0 ? (
+        <div className="text-center text-gray-500">No menu items found. Add some to get started!</div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {menuItems.map((item) => (
+            <Card key={item.id} className="shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-semibold">{item.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleEditMenuItem(item)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteMenuItem(item.id)}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+                <p className="text-lg font-bold">${item.price.toFixed(2)}</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    {item.category}
+                  </span>
+                  <span className={`font-medium ${item.isAvailable ? "text-green-600" : "text-red-600"}`}>
+                    {item.isAvailable ? "Available" : "Not Available"}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </Tabs>
-      </CardContent>
+        </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{currentMenuItem ? "Edit Menu Item" : "Add New Menu Item"}</DialogTitle>
+            <DialogDescription>
+              {currentMenuItem ? "Modify the details of the menu item." : "Enter details for a new menu item."}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="itemName" className="text-right">
+              <Label htmlFor="name" className="text-right">
                 Name
               </Label>
-              <Input
-                id="itemName"
-                value={itemName}
-                onChange={(e) => setItemName(e.target.value)}
-                className="col-span-3"
-              />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="itemDescription" className="text-right">
+              <Label htmlFor="description" className="text-right">
                 Description
               </Label>
-              <Input
-                id="itemDescription"
-                value={itemDescription}
-                onChange={(e) => setItemDescription(e.target.value)}
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="itemPrice" className="text-right">
+              <Label htmlFor="price" className="text-right">
                 Price
               </Label>
               <Input
-                id="itemPrice"
+                id="price"
                 type="number"
-                value={itemPrice}
-                onChange={(e) => setItemPrice(parseFloat(e.target.value))}
+                value={price}
+                onChange={(e) => setPrice(Number.parseFloat(e.target.value))}
                 className="col-span-3"
+                required
+                step="0.01"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="itemCategory" className="text-right">
+              <Label htmlFor="category" className="text-right">
                 Category
               </Label>
-              <Select value={itemCategory} onValueChange={setItemCategory}>
-                <SelectTrigger id="itemCategory" className="col-span-3">
-                  <SelectValue placeholder="Select category" />
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {menuCategories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="isAvailable" className="text-right">
+              <Label htmlFor="available" className="text-right">
                 Available
               </Label>
-              <Switch
-                id="isAvailable"
-                checked={isItemAvailable}
-                onCheckedChange={setIsItemAvailable}
-                className="col-span-3"
-              />
+              <Switch id="available" checked={isAvailable} onCheckedChange={setIsAvailable} className="col-span-3" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              {currentMenuItem ? "Save Changes" : "Add Item"}
+            <Button onClick={handleSubmit} disabled={loading || !name || price <= 0}>
+              {loading ? "Saving..." : currentMenuItem ? "Save Changes" : "Add Item"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
-  );
+    </div>
+  )
 }
