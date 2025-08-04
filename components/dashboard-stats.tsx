@@ -1,8 +1,8 @@
-'use client'
+"use client"
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { DollarSign, Users, Play, Pause, CheckCircle, XCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { DollarSign, Users, Play, Pause, CheckCircle, XCircle } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface DashboardStats {
   activeTables: number
@@ -24,7 +24,7 @@ export default function DashboardStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('https://localhost:5001/api/dashboard/stats')
+        const response = await fetch("https://localhost:5001/api/dashboard/stats")
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -32,7 +32,7 @@ export default function DashboardStats() {
         setStats(data)
       } catch (err: any) {
         setError(err.message)
-        console.error('Failed to fetch dashboard stats:', err)
+        console.error("Failed to fetch dashboard stats:", err)
       } finally {
         setLoading(false)
       }

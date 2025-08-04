@@ -1,33 +1,37 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Home, LayoutGrid, Utensils, Receipt, Settings, Users } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import DashboardStats from './dashboard-stats'
-import TablesOverview from './tables-overview'
-import MenuManagement from './menu-management'
-import BillingSection from './billing-section'
-import TableManagement from './table-management' // Assuming this is for adding/deleting tables
+import { useState } from "react"
+import { Home, LayoutGrid, Utensils, Receipt, Settings, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import DashboardStats from "./dashboard-stats"
+import TablesOverview from "./tables-overview"
+import MenuManagement from "./menu-management"
+import BillingSection from "./billing-section"
+import TableManagement from "./table-management" // Assuming this is for adding/deleting tables
 
-type ActiveTab = 'dashboard' | 'tables' | 'menu' | 'billing' | 'settings' | 'customers'
+type ActiveTab = "dashboard" | "tables" | "menu" | "billing" | "settings" | "customers"
 
 export default function SnookerClubLayout() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard')
+  const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard")
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case "dashboard":
         return <DashboardStats />
-      case 'tables':
+      case "tables":
         return <TablesOverview />
-      case 'menu':
+      case "menu":
         return <MenuManagement />
-      case 'billing':
+      case "billing":
         return <BillingSection />
-      case 'settings':
-        return <TableManagement /> {/* Reusing TableManagement for settings/config */}
-      case 'customers':
+      case "settings":
+        \
+        return <TableManagement />
+        {
+          /* Reusing TableManagement for settings/config */
+        }
+      case "customers":
         // You would create a CustomerManagement component here
         return <div className="p-6 text-center text-gray-500">Customer Management section coming soon!</div>
       default:
@@ -43,10 +47,10 @@ export default function SnookerClubLayout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "dashboard" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => setActiveTab('dashboard')}
+                  onClick={() => setActiveTab("dashboard")}
                 >
                   <Home className="h-5 w-5" />
                   <span className="sr-only">Dashboard</span>
@@ -57,10 +61,10 @@ export default function SnookerClubLayout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={activeTab === 'tables' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "tables" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => setActiveTab('tables')}
+                  onClick={() => setActiveTab("tables")}
                 >
                   <LayoutGrid className="h-5 w-5" />
                   <span className="sr-only">Tables</span>
@@ -71,10 +75,10 @@ export default function SnookerClubLayout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={activeTab === 'menu' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "menu" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => setActiveTab('menu')}
+                  onClick={() => setActiveTab("menu")}
                 >
                   <Utensils className="h-5 w-5" />
                   <span className="sr-only">Menu</span>
@@ -85,10 +89,10 @@ export default function SnookerClubLayout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={activeTab === 'billing' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "billing" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => setActiveTab('billing')}
+                  onClick={() => setActiveTab("billing")}
                 >
                   <Receipt className="h-5 w-5" />
                   <span className="sr-only">Billing</span>
@@ -99,10 +103,10 @@ export default function SnookerClubLayout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={activeTab === 'customers' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "customers" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => setActiveTab('customers')}
+                  onClick={() => setActiveTab("customers")}
                 >
                   <Users className="h-5 w-5" />
                   <span className="sr-only">Customers</span>
@@ -113,10 +117,10 @@ export default function SnookerClubLayout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={activeTab === 'settings' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "settings" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => setActiveTab('settings')}
+                  onClick={() => setActiveTab("settings")}
                 >
                   <Settings className="h-5 w-5" />
                   <span className="sr-only">Settings</span>
@@ -126,9 +130,7 @@ export default function SnookerClubLayout() {
             </Tooltip>
           </nav>
         </aside>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 sm:ml-14">
-          {renderContent()}
-        </main>
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 sm:ml-14">{renderContent()}</main>
       </div>
     </TooltipProvider>
   )

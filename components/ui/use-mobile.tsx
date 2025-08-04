@@ -2,19 +2,20 @@
 
 import * as React from "react"
 
-export function useIsMobile() {
+export function useMobile() {
   const [isMobile, setIsMobile] = React.useState(false)
 
   React.useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768) // Tailwind's 'md' breakpoint is 768px
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768) // Adjust breakpoint as needed
     }
 
-    // Set initial value
-    handleResize()
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
 
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
+    return () => {
+      window.removeEventListener("resize", checkMobile)
+    }
   }, [])
 
   return isMobile

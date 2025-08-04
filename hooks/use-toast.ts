@@ -107,12 +107,6 @@ export const reducer = (state: State, action: Action): State => {
       }
     }
     case actionTypes.REMOVE_TOAST:
-      if (action.toastId === undefined) {
-        return {
-          ...state,
-          toasts: [],
-        }
-      }
       return {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
@@ -157,6 +151,8 @@ function toast({ ...props }: Toast) {
   }
 }
 
+type UseToastReturn = ReturnType<typeof toast>
+
 export function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -173,8 +169,5 @@ export function useToast() {
   return {
     ...state,
     toast,
-    dismiss: React.useCallback(function dismiss(toastId?: string) {
-      dispatch({ type: actionTypes.DISMISS_TOAST, toastId })
-    }, []),
   }
 }

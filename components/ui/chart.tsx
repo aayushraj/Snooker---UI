@@ -3,7 +3,7 @@
 import * as React from "react"
 import {
   ChartContainer as RechartsChartContainer,
-  ChartContainerProps as RechartsChartContainerProps,
+  type ChartContainerProps as RechartsChartContainerProps,
 } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
 
@@ -37,21 +37,15 @@ interface ChartProps extends RechartsChartContainerProps {
   config: ChartConfig
 }
 
-const Chart = React.forwardRef<HTMLDivElement, ChartProps>(
-  ({ config, className, children, ...props }, ref) => {
-    return (
-      <ChartContext.Provider value={{ config }}>
-        <RechartsChartContainer
-          ref={ref}
-          className={cn("flex h-[400px] w-full", className)}
-          {...props}
-        >
-          {children}
-        </RechartsChartContainer>
-      </ChartContext.Provider>
-    )
-  }
-)
+const Chart = React.forwardRef<HTMLDivElement, ChartProps>(({ config, className, children, ...props }, ref) => {
+  return (
+    <ChartContext.Provider value={{ config }}>
+      <RechartsChartContainer ref={ref} className={cn("flex h-[400px] w-full", className)} {...props}>
+        {children}
+      </RechartsChartContainer>
+    </ChartContext.Provider>
+  )
+})
 Chart.displayName = "Chart"
 
 export { Chart, useChart }
