@@ -2,26 +2,26 @@ import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/sonner"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Snooker Club Management",
-  description: "A comprehensive system for managing snooker club operations.",
+  description: "Professional snooker club management system",
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >

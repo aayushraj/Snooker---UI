@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export", // For Electron build
+  output: 'export',
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  distDir: 'out',
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,8 +11,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true, // For Electron build
-  },
-};
+    unoptimized: true
+  }
+}
 
-export default nextConfig;
+export default nextConfig

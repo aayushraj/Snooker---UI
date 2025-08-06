@@ -1,333 +1,693 @@
-# 🎱 Elite Snooker Club Management System (Desktop App)
+# Snooker Club Management System
 
-A comprehensive full-stack management system for snooker clubs built with **Next.js 15**, **React 18**, **shadcn/ui**, **Electron**, and **C# .NET 8** with **SQLite**.
+A comprehensive desktop application for managing snooker club operations, built with Next.js frontend and .NET backend.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/aayushrajopadhyayas-projects/v0-snooker-club-ui-layout)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/d9ST0vYU9wh)
+## Project Structure
 
-## 🚀 Features
-
-### 📊 **Dashboard**
-- **Real-time Statistics**: Active, paused, available, and reserved tables
-- **Revenue Tracking**: Table revenue and order revenue with membership discounts
-- **Customer Analytics**: Active customers and order statistics
-- **Visual Cards**: Color-coded status indicators with icons
-
-### 🎯 **Table Management**
-- **Interactive Table Grid**: Visual representation of all tables with real-time status
-- **Real-time Timers**: Live countdown showing exact session duration (hours, minutes, seconds)
-- **Session Control**: Start, pause, resume, and end table sessions
-- **Customer Integration**: Link customers to tables with membership benefits
-- **Timer Tracking**: Automatic duration calculation with pause functionality
-- **Configuration**: Add, edit, delete tables with custom rates and locations
-- **Search Functionality**: Search tables by name, location, status, or customer name
-- **Food Ordering**: Direct food ordering from table cards during active sessions
-
-### 👥 **Customer Management**
-- **Customer Profiles**: Complete customer information with contact details
-- **Membership Plans**: 4-tier system (Walk-in, Basic 5%, Premium 10%, VIP 15%)
-- **Quick Creation**: Streamlined customer creation dialog
-- **Discount Application**: Automatic membership discounts on all services
-
-### 🍽️ **Menu Management & Ordering**
-- **Categorized Menu**: Beverages, Snacks, Meals, Alcohol
-- **Interactive Order Dialog**: Full-featured ordering interface with categories
-- **Real-time Ordering**: Place orders directly from table sessions
-- **Quantity Management**: Add/remove items with visual quantity controls
-- **Order Summary**: Live order total calculation with itemized breakdown
-- **Availability Toggle**: Real-time menu item availability control
-- **Price Management**: Easy pricing updates and descriptions
-
-### 💰 **Billing System**
-- **Comprehensive Bills**: Combined table time + food/beverage orders
-- **Membership Discounts**: Automatic discount application based on membership
-- **Tax Calculation**: Built-in tax calculation (10%)
-- **Payment Tracking**: Pending, paid, and overdue status management
-- **Detailed Breakdown**: Complete billing breakdown with itemized charges
-- **Bill Management**: View, download, and print detailed invoices
-
-### 🔧 **Backend API**
-- **RESTful APIs**: Complete CRUD operations for all entities
-- **Real-time Data**: Live dashboard statistics and table status
-- **Database Management**: SQLite with Entity Framework Core
-- **Automatic Seeding**: Sample data for immediate testing
-
-## 🛠️ Technology Stack
-
-### Frontend
-- **Framework**: Next.js 15 with App Router
-- **UI Library**: React 18 with TypeScript
-- **Components**: shadcn/ui with Tailwind CSS
-- **Icons**: Lucide React
-- **State Management**: React hooks and context
-- **Real-time Updates**: 1-second interval timers for live data
-
-### Desktop Application
-- **Framework**: Electron
-- **Packaging**: Electron Builder
-
-### Backend
-- **Framework**: .NET 8 Minimal APIs
-- **Database**: SQLite with Entity Framework Core
-- **Architecture**: Clean API design with proper separation
-- **CORS**: Configured for frontend integration
-
-## 📦 Installation & Setup
-
-### Frontend Setup (for development)
-\`\`\`bash
-# Install dependencies
-npm install
-
-# Run Next.js development server (for Electron dev mode)
-npm run dev
+\`\`\`
+├── frontend/          # Next.js React frontend
+├── backend/           # .NET Web API backend
+└── public/           # Shared assets
 \`\`\`
 
-### Backend Setup
+## Quick Start
+
+### Backend (.NET API)
 \`\`\`bash
-# Navigate to backend directory
 cd backend
-
-# Restore packages
 dotnet restore
-
-# Run the API server
 dotnet run
 \`\`\`
 
-The API will be available at `https://localhost:5001`. Ensure your frontend (Next.js/Electron) is configured to call this URL.
-
-### Running the Desktop Application
-
-#### Development Mode
-To run the Electron app in development mode (which connects to the Next.js dev server):
-1. Start the Next.js development server: `npm run dev`
-2. In a separate terminal, start the Electron app: `npm run start:electron`
-
-#### Building and Running Production Desktop App
-1. Build the Next.js static site: `npm run build:next`
-2. Build the Electron application: `npm run build:electron`
-   (This will create an executable installer in the `dist` folder, e.g., `.exe` for Windows, `.dmg` for macOS, `.AppImage` for Linux)
-3. To run the built Electron app directly (after `npm run build:next`): `npm run start:electron`
-
-## 🗄️ Database Schema
-
-### Core Entities
-- **Tables**: Configuration and current session tracking
-- **Customers**: Profiles with membership tiers
-- **Sessions**: Table usage with customer linking
-- **MenuItems**: Categorized food and beverage items
-- **Orders & OrderItems**: Food/beverage orders with quantities
-- **Bills**: Comprehensive billing with discounts and tax
-
-### Key Relationships
-- Tables ↔ Sessions (One-to-One current session)
-- Customers ↔ Sessions (One-to-Many)
-- Sessions ↔ Bills (One-to-One)
-- Orders ↔ OrderItems (One-to-Many)
-- MenuItems ↔ OrderItems (One-to-Many)
-
-## 🔄 Workflows
-
-### 1. **Customer Check-in**
-1. Customer arrives → Create/Select customer profile
-2. Choose membership plan (Walk-in, Basic, Premium, VIP)
-3. Select available table → Start session with real-time timer
-4. Automatic discount application based on membership
-
-### 2. **Food Ordering Process**
-1. Click "Order Food" button on active table
-2. Browse categorized menu (Beverages, Snacks, Meals, Alcohol)
-3. Add items to order with quantity controls
-4. Review order summary with live total calculation
-5. Place order - automatically linked to table session
-
-### 3. **Session Management**
-1. **Start**: Link customer to table with timer start
-2. **Pause**: Temporarily pause session (break time) - timer pauses
-3. **Resume**: Continue session with accurate time tracking
-4. **End**: Generate comprehensive bill with all charges
-
-### 4. **Billing Process**
-1. **Table Charges**: Calculated based on duration and hourly rate
-2. **Food/Beverage**: All orders during session included
-3. **Membership Discount**: Applied to total before tax
-4. **Tax Calculation**: 10% tax on discounted amount
-5. **Payment Tracking**: Mark as paid/pending/overdue
-
-## 🎨 UI Components
-
-### Dashboard Cards
-- **Active Tables** (Green): Currently occupied tables
-- **Paused Tables** (Yellow): Temporarily paused sessions
-- **Available Tables** (Blue): Ready for new customers
-- **Reserved Tables** (Purple): Advance bookings
-- **Revenue Cards**: Real-time financial tracking
-
-### Interactive Elements
-- **Real-time Timers**: Live session duration display
-- **Customer Creation Dialog**: Multi-step customer onboarding
-- **Order Dialog**: Full-featured food ordering interface
-- **Table Status Cards**: Real-time session information
-- **Search Bar**: Filter tables by multiple criteria
-- **Menu Management**: Category-based organization
-- **Billing Details**: Comprehensive bill breakdown
-
-## 🔍 **Search & Navigation**
-- **Table Search**: Search by table name, location, status, or customer name
-- **Smart Navigation**: Table Settings button redirects to Settings page
-- **Real-time Filtering**: Instant search results as you type
-- **No Results Handling**: Helpful messages when no matches found
-
-## 🔐 Membership System
-
-| Plan | Discount | Benefits |
-|------|----------|----------|
-| **Walk-in** | 0% | Standard service |
-| **Basic** | 5% | Discount on all services |
-| **Premium** | 10% | Discount + priority booking |
-| **VIP** | 15% | Maximum discount + exclusive benefits |
-
-## 📈 Analytics & Reporting
-
-- **Real-time Dashboard**: Live statistics and KPIs
-- **Revenue Tracking**: Table and order revenue separation
-- **Customer Analytics**: Active customer count and patterns
-- **Order Statistics**: Daily order volume and completion rates
-- **Table Utilization**: Usage patterns and availability metrics
-- **Live Timers**: Real-time session duration tracking
-
-## 🚀 Deployment
-
-### Frontend (Vercel)
-The frontend is automatically deployed to Vercel with each commit.
-
-### Backend (Local/Server)
+### Frontend (Next.js)
 \`\`\`bash
-# Publish for production
-dotnet publish -c Release
-
-# Run in production
-dotnet SnookerClubApi.dll
+cd frontend
+npm install
+npm run dev
 \`\`\`
 
-## 🔧 Configuration
+## Features
 
-### Environment Variables
-- `ConnectionStrings__DefaultConnection`: SQLite database path
-- `CORS_ORIGINS`: Allowed frontend origins
+- **Table Management**: Real-time table status tracking
+- **Session Management**: Start, pause, resume, and end sessions
+- **Customer Management**: Member profiles with discount tiers
+- **Menu & Orders**: Food and beverage ordering system
+- **Billing**: Automated billing with tax and discount calculations
+- **Dashboard**: Real-time statistics and analytics
 
-### Database Configuration
-The system automatically creates and seeds the SQLite database on first run with:
-- 6 sample tables (Main Hall & VIP Room)
-- 12 menu items across 4 categories (Beverages, Snacks, Meals, Alcohol)
-- 3 sample customers with different membership tiers
+## Technology Stack
 
-## 📝 API Endpoints
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: .NET 8, Entity Framework Core, SQLite
+- **Desktop**: Electron for cross-platform desktop app
 
-### Dashboard
-- `GET /api/dashboard/stats` - Real-time dashboard statistics
+## License
 
-### Tables
-- `GET /api/tables` - Get all tables with current sessions
-- `POST /api/tables` - Create new table
-- `PUT /api/tables/{id}` - Update table configuration
-- `DELETE /api/tables/{id}` - Delete table
-
-### Customers
-- `GET /api/customers` - Get all customers
-- `POST /api/customers` - Create new customer
-
-### Sessions
-- `POST /api/sessions/start` - Start new session
-- `POST /api/sessions/{id}/pause` - Pause session
-- `POST /api/sessions/{id}/resume` - Resume session
-- `POST /api/sessions/{id}/end` - End session and generate bill
-
-### Menu
-- `GET /api/menu` - Get all menu items
-- `POST /api/menu` - Create menu item
-- `PUT /api/menu/{id}` - Update menu item
-- `DELETE /api/menu/{id}` - Delete menu item
-
-### Orders
-- `POST /api/orders` - Create new order
-- `GET /api/orders/{sessionId}` - Get orders for session
-
-### Billing
-- `GET /api/bills` - Get all bills with details
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [v0.dev](https://v0.dev) - AI-powered development platform
-- UI components from [shadcn/ui](https://ui.shadcn.com)
-- Icons from [Lucide React](https://lucide.dev)
-
----
-
-## 📋 Version History
-
-| Version | Date | Features Added | Developer Notes |
-|---------|------|----------------|-----------------|
-| **v1.0.0** | 2024-01-08 | Initial release with basic table management | Basic CRUD operations for tables |
-| **v1.1.0** | 2024-01-08 | Added customer creation dialog with membership plans | 4-tier membership system implemented |
-| **v1.2.0** | 2024-01-08 | Enhanced dashboard with 8 statistical cards | Real-time statistics for tables and orders |
-| **v1.3.0** | 2024-01-08 | Complete table overview with session management | Start, pause, resume, end session functionality |
-| **v1.4.0** | 2024-01-08 | Menu management system with categories | Full CRUD for beverages, snacks, meals, alcohol |
-| **v1.5.0** | 2024-01-08 | Comprehensive billing system with discounts | Automatic membership discounts and tax calculation |
-| **v1.6.0** | 2024-01-08 | Complete C# .NET backend API with SQLite | RESTful APIs for all frontend functionality |
-| **v1.7.0** | 2024-01-08 | Table management configuration panel | Add, edit, delete tables with custom settings |
-| **v1.8.0** | 2024-01-08 | Order management integration | Link food/beverage orders to table sessions |
-| **v1.9.0** | 2024-01-08 | Enhanced UI with proper navigation and components | All sections properly implemented and functional |
-| **v2.0.0** | 2024-01-08 | Production-ready system with full documentation | Complete system with README and deployment guide |
-| **v2.1.0** | 2024-01-08 | Real-time timers for table sessions | Live countdown showing hours, minutes, seconds |
-| **v2.2.0** | 2024-01-08 | Food ordering system with interactive dialog | Full-featured ordering interface with categories |
-| **v2.3.0** | 2024-01-08 | Table search functionality and settings navigation | Search by name, location, status, customer |
-| **v2.4.0** | 2025-08-05 | Electron desktop application conversion | Project configured to run as a desktop app |
-
-### 🎯 Upcoming Features (Roadmap)
-- **v2.5.0**: Real-time WebSocket notifications for table status changes
-- **v2.6.0**: Advanced analytics dashboard with charts and graphs
-- **v2.7.0**: Booking system for advance table reservations
-- **v2.8.0**: Member management with detailed profiles and history
-- **v2.9.0**: Payment integration with Stripe/PayPal
-- **v3.0.0**: Export functionality for reports (PDF/Excel)
-- **v3.1.0**: Multi-location support for club chains
-
----
-
-**Built with ❤️ using v0.dev - The future of AI-powered development**
+Private project for snooker club management.
 \`\`\`
 
-\`\`\`plaintext file="SnookerClubApi.csproj"
-<Project Sdk="Microsoft.NET.Sdk.Web">
+```csharp file="backend/Program.cs"
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Cors;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.OpenApi.Models;
+using SnookerClubApi.Models;
+using System;
+using Microsoft.Extensions.Logging;
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+var builder = WebApplication.CreateBuilder(args);
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-  </ItemGroup>
+// Configure JSON options to handle cycles and enums
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
-</Project>
+// Add services to the container.
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "SnookerClubApi", Version = "v1" });
+});
+
+// Configure SQLite database
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5001") // Allow Next.js dev server and self
+                         .AllowAnyHeader()
+                         .AllowAnyMethod());
+});
+
+var app = builder.Build();
+
+// Apply migrations and seed data on startup
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        context.Database.Migrate(); // Apply any pending migrations
+        SeedData.Initialize(context); // Seed initial data
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+    }
+}
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SnookerClubApi v1"));
+}
+
+app.UseHttpsRedirection();
+app.UseCors("AllowSpecificOrigin"); // Use the CORS policy
+
+// API Endpoints
+// Dashboard Stats
+app.MapGet("/api/dashboard/stats", async (AppDbContext db) =>
+{
+    var totalTables = await db.Tables.CountAsync();
+    var activeSessions = await db.Sessions.Where(s => s.Status == SessionStatus.Active).ToListAsync();
+    var pausedSessions = await db.Sessions.Where(s => s.Status == SessionStatus.Paused).ToListAsync();
+    var availableTables = totalTables - activeSessions.Count - pausedSessions.Count;
+    var reservedTables = 0; // Placeholder for future booking system
+
+    var totalRevenue = await db.Bills.SumAsync(b => b.GrandTotal);
+    var tableRevenue = await db.Bills.SumAsync(b => b.TableCharges);
+    var orderRevenue = await db.Bills.SumAsync(b => b.OrderCharges);
+
+    var activeCustomers = await db.Sessions.Where(s => s.Status == SessionStatus.Active || s.Status == SessionStatus.Paused)
+                                            .Select(s => s.CustomerId)
+                                            .Distinct()
+                                            .CountAsync();
+    var totalOrders = await db.Orders.CountAsync(); // Count all orders
+
+    return Results.Ok(new
+    {
+        ActiveTables = activeSessions.Count,
+        PausedTables = pausedSessions.Count,
+        AvailableTables = availableTables > 0 ? availableTables : 0, // Ensure non-negative
+        ReservedTables = reservedTables,
+        TotalRevenue = totalRevenue,
+        TableRevenue = tableRevenue,
+        OrderRevenue = orderRevenue,
+        ActiveCustomers = activeCustomers,
+        TotalOrders = totalOrders
+    });
+});
+
+// Tables API
+app.MapGet("/api/tables", async (AppDbContext db) =>
+{
+    var tables = await db.Tables
+        .Include(t => t.CurrentSession)
+            .ThenInclude(s => s.Customer)
+        .ToListAsync();
+    return Results.Ok(tables);
+});
+
+app.MapPost("/api/tables", async (Table table, AppDbContext db) =>
+{
+    db.Tables.Add(table);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/tables/{table.Id}", table);
+});
+
+app.MapPut("/api/tables/{id}", async (Guid id, Table updatedTable, AppDbContext db) =>
+{
+    var table = await db.Tables.FindAsync(id);
+    if (table == null) return Results.NotFound();
+
+    table.Name = updatedTable.Name;
+    table.HourlyRate = updatedTable.HourlyRate;
+    table.Location = updatedTable.Location;
+
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/tables/{id}", async (Guid id, AppDbContext db) =>
+{
+    var table = await db.Tables.FindAsync(id);
+    if (table == null) return Results.NotFound();
+
+    db.Tables.Remove(table);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+// Customers API
+app.MapGet("/api/customers", async (AppDbContext db) =>
+{
+    return Results.Ok(await db.Customers.ToListAsync());
+});
+
+app.MapPost("/api/customers", async (Customer customer, AppDbContext db) =>
+{
+    // Set discount based on membership type
+    customer.DiscountPercentage = customer.MembershipType switch
+    {
+        MembershipType.Basic => 0.05m,
+        MembershipType.Premium => 0.10m,
+        MembershipType.VIP => 0.15m,
+        _ => 0m
+    };
+    db.Customers.Add(customer);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/customers/{customer.Id}", customer);
+});
+
+// Sessions API
+app.MapPost("/api/sessions/start", async (StartSessionRequest request, AppDbContext db) =>
+{
+    var table = await db.Tables.Include(t => t.CurrentSession).FirstOrDefaultAsync(t => t.Id == request.TableId);
+    if (table == null) return Results.NotFound("Table not found.");
+    if (table.CurrentSession != null) return Results.BadRequest("Table is already occupied.");
+
+    var customer = await db.Customers.FindAsync(request.CustomerId);
+    if (customer == null) return Results.NotFound("Customer not found.");
+
+    var session = new Session
+    {
+        TableId = request.TableId,
+        CustomerId = request.CustomerId,
+        StartTime = DateTime.UtcNow,
+        Status = SessionStatus.Active,
+        HourlyRate = table.HourlyRate,
+        DiscountPercentage = customer.DiscountPercentage
+    };
+
+    db.Sessions.Add(session);
+    table.CurrentSession = session; // Link session to table
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/sessions/{session.Id}", session);
+});
+
+app.MapPost("/api/sessions/{id}/pause", async (Guid id, AppDbContext db) =>
+{
+    var session = await db.Sessions.FindAsync(id);
+    if (session == null) return Results.NotFound();
+    if (session.Status != SessionStatus.Active) return Results.BadRequest("Session is not active.");
+
+    session.Status = SessionStatus.Paused;
+    session.PausedAt = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    return Results.Ok(session);
+});
+
+app.MapPost("/api/sessions/{id}/resume", async (Guid id, AppDbContext db) =>
+{
+    var session = await db.Sessions.FindAsync(id);
+    if (session == null) return Results.NotFound();
+    if (session.Status != SessionStatus.Paused) return Results.BadRequest("Session is not paused.");
+    if (!session.PausedAt.HasValue) return Results.BadRequest("Session was not properly paused.");
+
+    session.Status = SessionStatus.Active;
+    session.PausedDuration += (DateTime.UtcNow - session.PausedAt.Value);
+    session.PausedAt = null;
+    await db.SaveChangesAsync();
+    return Results.Ok(session);
+});
+
+app.MapPost("/api/sessions/{id}/end", async (Guid id, AppDbContext db) =>
+{
+    var session = await db.Sessions
+        .Include(s => s.Table)
+        .Include(s => s.Customer)
+        .Include(s => s.Orders)
+            .ThenInclude(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+        .FirstOrDefaultAsync(s => s.Id == id);
+
+    if (session == null) return Results.NotFound();
+    if (session.Status == SessionStatus.Ended) return Results.BadRequest("Session already ended.");
+
+    session.Status = SessionStatus.Ended;
+    session.EndTime = DateTime.UtcNow;
+
+    // Calculate duration
+    var totalDuration = (session.EndTime.Value - session.StartTime) - session.PausedDuration;
+    session.DurationMilliseconds = (long)totalDuration.TotalMilliseconds;
+
+    // Calculate table charges
+    var totalHours = (decimal)totalDuration.TotalHours;
+    session.TableCharges = totalHours * session.HourlyRate;
+
+    // Calculate order charges
+    session.OrderCharges = session.Orders.SelectMany(o => o.OrderItems).Sum(oi => oi.Quantity * oi.MenuItem.Price);
+
+    // Calculate subtotal
+    session.Subtotal = session.TableCharges + session.OrderCharges;
+
+    // Apply discount
+    session.DiscountAmount = session.Subtotal * session.DiscountPercentage;
+    var discountedSubtotal = session.Subtotal - session.DiscountAmount;
+
+    // Apply tax (e.g., 10%)
+    session.TaxRate = 0.10m; // 10% tax
+    session.TaxAmount = discountedSubtotal * session.TaxRate;
+
+    // Calculate grand total
+    session.GrandTotal = discountedSubtotal + session.TaxAmount;
+
+    // Create a bill
+    var bill = new Bill
+    {
+        SessionId = session.Id,
+        TableId = session.TableId.ToString(),
+        TableName = session.Table.Name,
+        CustomerId = session.CustomerId.ToString(),
+        CustomerName = session.Customer.Name,
+        MembershipType = session.Customer.MembershipType,
+        StartTime = session.StartTime,
+        EndTime = session.EndTime.Value,
+        DurationMilliseconds = session.DurationMilliseconds,
+        HourlyRate = session.HourlyRate,
+        TableCharges = session.TableCharges,
+        OrderItems = session.Orders.SelectMany(o => o.OrderItems).Select(oi => new BillOrderItem
+        {
+            MenuItemId = oi.MenuItemId.ToString(),
+            MenuItemName = oi.MenuItem.Name,
+            Quantity = oi.Quantity,
+            Price = oi.MenuItem.Price,
+            Total = oi.Quantity * oi.MenuItem.Price
+        }).ToList(),
+        OrderCharges = session.OrderCharges,
+        Subtotal = session.Subtotal,
+        DiscountPercentage = session.DiscountPercentage,
+        DiscountAmount = session.DiscountAmount,
+        TaxRate = session.TaxRate,
+        TaxAmount = session.TaxAmount,
+        GrandTotal = session.GrandTotal,
+        Status = "Paid" // Assuming immediate payment for simplicity
+    };
+    db.Bills.Add(bill);
+
+    // Detach session from table
+    session.Table.CurrentSession = null;
+
+    await db.SaveChangesAsync();
+    return Results.Ok(bill);
+});
+
+// Menu API
+app.MapGet("/api/menu", async (AppDbContext db) =>
+{
+    return Results.Ok(await db.MenuItems.ToListAsync());
+});
+
+app.MapPost("/api/menu", async (MenuItem item, AppDbContext db) =>
+{
+    db.MenuItems.Add(item);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/menu/{item.Id}", item);
+});
+
+app.MapPut("/api/menu/{id}", async (Guid id, MenuItem updatedItem, AppDbContext db) =>
+{
+    var item = await db.MenuItems.FindAsync(id);
+    if (item == null) return Results.NotFound();
+
+    item.Name = updatedItem.Name;
+    item.Description = updatedItem.Description;
+    item.Price = updatedItem.Price;
+    item.Category = updatedItem.Category;
+    item.IsAvailable = updatedItem.IsAvailable;
+
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/menu/{id}", async (Guid id, AppDbContext db) =>
+{
+    var item = await db.MenuItems.FindAsync(id);
+    if (item == null) return Results.NotFound();
+
+    db.MenuItems.Remove(item);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+// Orders API
+app.MapPost("/api/orders", async (OrderRequest request, AppDbContext db) =>
+{
+    var session = await db.Sessions.Include(s => s.Orders).FirstOrDefaultAsync(s => s.Id == request.SessionId);
+    if (session == null) return Results.NotFound("Session not found.");
+
+    var order = new Order
+    {
+        SessionId = request.SessionId,
+        OrderTime = DateTime.UtcNow,
+        OrderItems = new List<OrderItem>()
+    };
+
+    foreach (var itemRequest in request.Items)
+    {
+        var menuItem = await db.MenuItems.FindAsync(itemRequest.MenuItemId);
+        if (menuItem == null || !menuItem.IsAvailable)
+        {
+            return Results.BadRequest($"Menu item {itemRequest.MenuItemId} not found or not available.");
+        }
+        order.OrderItems.Add(new OrderItem
+        {
+            MenuItemId = itemRequest.MenuItemId,
+            Quantity = itemRequest.Quantity
+        });
+    }
+
+    db.Orders.Add(order);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/orders/{order.Id}", order);
+});
+
+app.MapGet("/api/orders/{sessionId}", async (Guid sessionId, AppDbContext db) =>
+{
+    var orders = await db.Orders
+        .Where(o => o.SessionId == sessionId)
+        .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.MenuItem)
+        .ToListAsync();
+    return Results.Ok(orders);
+});
+
+app.Run();
+
+// Models
+public class Table
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public decimal HourlyRate { get; set; }
+    public string Location { get; set; } = string.Empty; // e.g., "Main Hall", "VIP Room"
+    public Session? CurrentSession { get; set; } // Navigation property for current session
+}
+
+public class Customer
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public MembershipType MembershipType { get; set; } = MembershipType.None;
+    public decimal DiscountPercentage { get; set; } = 0m;
+}
+
+public enum MembershipType
+{
+    None,
+    Basic,
+    Premium,
+    VIP
+}
+
+public class Session
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TableId { get; set; }
+    public Table Table { get; set; } = null!;
+    public Guid CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
+    public DateTime StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public TimeSpan PausedDuration { get; set; } = TimeSpan.Zero;
+    public DateTime? PausedAt { get; set; }
+    public SessionStatus Status { get; set; } = SessionStatus.Active;
+    public decimal HourlyRate { get; set; } // Rate at the time of session start
+    public decimal DiscountPercentage { get; set; } // Discount at the time of session start
+
+    // Calculated fields for billing
+    public long DurationMilliseconds { get; set; }
+    public decimal TableCharges { get; set; }
+    public decimal OrderCharges { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxRate { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal GrandTotal { get; set; }
+
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
+}
+
+public enum SessionStatus
+{
+    Active,
+    Paused,
+    Ended
+}
+
+public class MenuItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string Category { get; set; } = string.Empty; // e.g., "Beverages", "Snacks", "Meals", "Alcohol"
+    public bool IsAvailable { get; set; } = true;
+}
+
+public class Order
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SessionId { get; set; }
+    public Session Session { get; set; } = null!;
+    public DateTime OrderTime { get; set; }
+    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+}
+
+public class OrderItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid OrderId { get; set; }
+    public Order Order { get; set; } = null!;
+    public Guid MenuItemId { get; set; }
+    public MenuItem MenuItem { get; set; } = null!;
+    public int Quantity { get; set; }
+}
+
+public class Bill
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SessionId { get; set; }
+    public string TableId { get; set; } = string.Empty; // Store as string to avoid complex FK if Table is deleted
+    public string TableName { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty; // Store as string
+    public string CustomerName { get; set; } = string.Empty;
+    public MembershipType MembershipType { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public long DurationMilliseconds { get; set; }
+    public decimal HourlyRate { get; set; }
+    public decimal TableCharges { get; set; }
+    public ICollection<BillOrderItem> OrderItems { get; set; } = new List<BillOrderItem>();
+    public decimal OrderCharges { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal DiscountPercentage { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxRate { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal GrandTotal { get; set; }
+    public string Status { get; set; } = "Pending"; // e.g., "Pending", "Paid"
+}
+
+public class BillOrderItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid BillId { get; set; }
+    public string MenuItemId { get; set; } = string.Empty; // Store as string
+    public string MenuItemName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+    public decimal Total { get; set; }
+}
+
+// DTOs for requests
+public class StartSessionRequest
+{
+    public Guid TableId { get; set; }
+    public Guid CustomerId { get; set; }
+}
+
+public class OrderRequest
+{
+    public Guid SessionId { get; set; }
+    public List<OrderItemRequest> Items { get; set; } = new List<OrderItemRequest>();
+}
+
+public class OrderItemRequest
+{
+    public Guid MenuItemId { get; set; }
+    public int Quantity { get; set; }
+}
+
+// Database Context
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<Table> Tables { get; set; }
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Session> Sessions { get; set; }
+    public DbSet<MenuItem> MenuItems { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<Bill> Bills { get; set; }
+    public DbSet<BillOrderItem> BillOrderItems { get; set; } // For storing order items within a bill
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Table>()
+            .HasOne(t => t.CurrentSession)
+            .WithOne(s => s.Table)
+            .HasForeignKey<Session>(s => s.TableId)
+            .IsRequired(false) // A table can exist without a current session
+            .OnDelete(DeleteBehavior.SetNull); // If table is deleted, set session's TableId to null
+
+        modelBuilder.Entity<Session>()
+            .HasOne(s => s.Customer)
+            .WithMany()
+            .HasForeignKey(s => s.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting customer if they have active sessions
+
+        modelBuilder.Entity<Session>()
+            .HasMany(s => s.Orders)
+            .WithOne(o => o.Session)
+            .HasForeignKey(o => o.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Order>()
+            .HasMany(o => o.OrderItems)
+            .WithOne(oi => oi.Order)
+            .HasForeignKey(oi => oi.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.MenuItem)
+            .WithMany()
+            .HasForeignKey(oi => oi.MenuItemId)
+            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting menu item if it's in an order
+
+        modelBuilder.Entity<Bill>()
+            .HasMany(b => b.OrderItems)
+            .WithOne()
+            .HasForeignKey(boi => boi.BillId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure enum to string conversion
+        modelBuilder.Entity<Customer>()
+            .Property(c => c.MembershipType)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Session>()
+            .Property(s => s.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Bill>()
+            .Property(b => b.MembershipType)
+            .HasConversion<string>();
+
+        base.OnModelCreating(modelBuilder);
+    }
+}
+
+// Data Seeding
+public static class SeedData
+{
+    public static void Initialize(AppDbContext context)
+    {
+        context.Database.EnsureCreated(); // Ensure database is created
+
+        if (!context.Tables.Any())
+        {
+            context.Tables.AddRange(
+                new Table { Name = "Table 1", HourlyRate = 12.00m, Location = "Main Hall" },
+                new Table { Name = "Table 2", HourlyRate = 12.00m, Location = "Main Hall" },
+                new Table { Name = "Table 3", HourlyRate = 15.00m, Location = "VIP Room" },
+                new Table { Name = "Table 4", HourlyRate = 15.00m, Location = "VIP Room" },
+                new Table { Name = "Table 5", HourlyRate = 10.00m, Location = "Main Hall" },
+                new Table { Name = "Table 6", HourlyRate = 10.00m, Location = "Main Hall" }
+            );
+            context.SaveChanges();
+        }
+
+        if (!context.Customers.Any())
+        {
+            context.Customers.AddRange(
+                new Customer { Name = "Alice Smith", MembershipType = MembershipType.Basic, DiscountPercentage = 0.05m },
+                new Customer { Name = "Bob Johnson", MembershipType = MembershipType.Premium, DiscountPercentage = 0.10m },
+                new Customer { Name = "Charlie Brown", MembershipType = MembershipType.VIP, DiscountPercentage = 0.15m }
+            );
+            context.SaveChanges();
+        }
+
+        if (!context.MenuItems.Any())
+        {
+            context.MenuItems.AddRange(
+                new MenuItem { Name = "Coffee", Description = "Freshly brewed coffee", Price = 3.50m, Category = "Beverages", IsAvailable = true },
+                new MenuItem { Name = "Tea", Description = "Assorted tea selection", Price = 3.00m, Category = "Beverages", IsAvailable = true },
+                new MenuItem { Name = "Soda", Description = "Various soft drinks", Price = 2.50m, Category = "Beverages", IsAvailable = true },
+                new MenuItem { Name = "Water Bottle", Description = "Still or sparkling water", Price = 2.00m, Category = "Beverages", IsAvailable = true },
+                new MenuItem { Name = "French Fries", Description = "Crispy golden fries", Price = 4.00m, Category = "Snacks", IsAvailable = true },
+                new MenuItem { Name = "Nachos", Description = "Cheese and jalapeño nachos", Price = 7.50m, Category = "Snacks", IsAvailable = true },
+                new MenuItem { Name = "Club Sandwich", Description = "Classic club sandwich with fries", Price = 12.00m, Category = "Meals", IsAvailable = true },
+                new MenuItem { Name = "Pizza Slice", Description = "Pepperoni or Cheese", Price = 5.00m, Category = "Meals", IsAvailable = true },
+                new MenuItem { Name = "Beer (Local)", Description = "Craft local beer", Price = 6.00m, Category = "Alcohol", IsAvailable = true },
+                new MenuItem { Name = "Wine (Glass)", Description = "Red or White", Price = 8.00m, Category = "Alcohol", IsAvailable = true },
+                new MenuItem { Name = "Burger", Description = "Beef burger with cheese", Price = 10.00m, Category = "Meals", IsAvailable = true },
+                new MenuItem { Name = "Chips", Description = "Assorted potato chips", Price = 2.00m, Category = "Snacks", IsAvailable = true }
+            );
+            context.SaveChanges();
+        }
+    }
+}
