@@ -3,37 +3,71 @@
 .vs/
 bin/
 obj/
-
-## Ignore NuGet packages
-*.nupkg
-*.snupkg
-
-## Ignore build results
-*.dll
-*.exe
-*.pdb
-*.deps.json
-*.runtimeconfig.json
-
-## Ignore user-specific files
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
+
+## Ignore Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+*.dll
+*.pdb
+*.exe
+*.tmp
 *.log
+*.bak
+*.cache
+*.ncb
+*.opendb
+*.aps
+*.bsc
+*.ilk
+*.res
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.rsp
+*.pgm
+*.pgd
+*.meta
+*.resharper
+*.dotCover
+*.pidb
+*.userprefs
 
-## Ignore test results
-TestResults/
+## Ignore NuGet packages
+packages/
+*.nupkg
+*.snupkg
+*.lock.json
 
-## Ignore database files
+## Ignore Rider files
+.idea/
+*.iml
+
+## Ignore Visual Studio Code files
+.vscode/
+
+## Ignore Database files
 *.db
 *.sqlite
-*.sqlite-journal
+*.sqlite3
+*.mdf
+*.ldf
 
-## Ignore environment variables
+## Ignore Test results
+TestResults/
+*.trx
+*.coverage
+*.runsettings
+
+## Ignore other files
+node_modules/
+npm-debug.log
+yarn-error.log
 .env
-.env.*
-
-## Ignore Docker files
-Dockerfile.bak
-
-## Ignore generated files
-Generated/

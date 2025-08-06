@@ -1,8 +1,20 @@
 "use client"
 
 import * as React from "react"
-import * as RechartsPrimitive from "recharts"
-
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  Bar,
+  BarChart,
+  Pie,
+  PieChart,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts"
 import { cn } from "@/lib/utils"
 
 // Format: { key: { label: "Label", color: "hsl(var(--chart-1))" } }
@@ -34,25 +46,23 @@ const ChartContainer = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     config: ChartConfig
-    children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"]
+    children: React.ComponentProps<typeof ResponsiveContainer>["children"]
   }
 >(({ config, className, children, ...props }, ref) => {
   const newChildren = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
-      if (child.type === RechartsPrimitive.ResponsiveContainer) {
+      if (child.type === ResponsiveContainer) {
         return React.cloneElement(
-          child as React.ReactElement<
-            React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>
-          >,
+          child as React.ReactElement<typeof ResponsiveContainer>,
           {
             children: React.Children.map(
               child.props.children,
               (grandchild) => {
                 if (React.isValidElement(grandchild)) {
                   if (
-                    grandchild.type === RechartsPrimitive.Line ||
-                    grandchild.type === RechartsPrimitive.Bar ||
-                    grandchild.type === RechartsPrimitive.Area
+                    grandchild.type === Line ||
+                    grandchild.type === Bar ||
+                    grandchild.type === Pie
                   ) {
                     const dataKey = grandchild.props.dataKey as string
                     const color = config[dataKey]?.color
@@ -92,15 +102,14 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "ChartContainer"
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+const ChartTooltip = Tooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+  React.ComponentProps<typeof Tooltip> &
     React.ComponentProps<"div"> & {
       hideLabel?: boolean
       hideIndicator?: boolean
-      is
       nameKey?: string
       valueKey?: string
     }
@@ -111,7 +120,6 @@ const ChartTooltipContent = React.forwardRef<
       viewBox,
       hideLabel = false,
       hideIndicator = false,
-      is,
       nameKey,
       valueKey,
       payload,
@@ -174,7 +182,7 @@ ChartTooltipContent.displayName = "ChartTooltipContent"
 
 const ChartLegend = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Legend> & {
+  React.ComponentProps<typeof Legend> & {
     hideIcon?: boolean
   }
 >(({ className, hideIcon = false, payload, ...props }, ref) => {
@@ -234,4 +242,21 @@ const ChartLegend = React.forwardRef<
 })
 ChartLegend.displayName = "ChartLegend"
 
-export { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend }
+export {
+  CartesianGrid,
+  Line,
+  LineChart,
+  Bar,
+  BarChart,
+  Pie,
+  PieChart,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend
+}

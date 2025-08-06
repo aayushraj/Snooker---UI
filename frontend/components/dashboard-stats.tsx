@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DollarSign, Users, Play, Pause, CheckCircle, XCircle } from "lucide-react"
+import { DollarSign, Users, Play, Pause, CheckCircle, XCircle } from 'lucide-react'
 
 interface DashboardStats {
   activeTables: number
@@ -50,7 +50,7 @@ export function DashboardStats() {
 
   if (loading) return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4">Loading dashboard...</div>
   if (error) return <div className="text-center text-red-500 p-4">{error}</div>
-  if (!stats) return <div className="text-center p-4">No data available.</div>
+  if (!stats) return <div className="text-center p-4 text-muted-foreground">No data available.</div>
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

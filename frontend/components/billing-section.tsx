@@ -67,7 +67,7 @@ export function BillingSection() {
 
   if (loading) return <div className="p-4 text-center">Loading bills...</div>
   if (error) return <div className="p-4 text-center text-red-500">{error}</div>
-  if (bills.length === 0) return <div className="p-4 text-center">No bills to display yet.</div>
+  if (bills.length === 0) return <div className="p-4 text-center text-muted-foreground">No bills to display yet.</div>
 
   return (
     <Card className="w-full">

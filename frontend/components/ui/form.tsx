@@ -1,63 +1,25 @@
+"use client"
+
 import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
 import {
   Controller,
-  FormProvider,
-  useFormContext,
+  type ControllerProps,
   type FieldPath,
   type FieldValues,
+  useFormContext,
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 
-const Form = FormProvider
+const Form = useFormContext
 
-type FormFieldContextValue<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
-> = {
-  name: TName
-}
-
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue
-)
-
-const FormField = <
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
->(
-  props: React.PropsWithChildren<React.ComponentProps<typeof Controller>>
-) => {
-  return (
-    <FormFieldContext.Provider value={{ name: props.name as TName }}>
-      <Controller {...props} />
-    </FormFieldContext.Provider>
-  )
-}
-
-const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext)
-  const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext()
-
-  const fieldState = getFieldState(fieldContext.name, formState)
-
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>")
-  }
-
-  const { id } = itemContext
-
-  return {
-    id,
-    name: fieldContext.name,
-    formItemId: `${id}-form-item`,
-    formDescriptionId: `${id}-form-item-description`,
-    formMessageId: `${id}-form-item-message`,
-    ...fieldState,
-  }
+type FormFieldRenderProps = {
+  field: ControllerRenderProps<FieldValues, FieldPath<FieldValues>>
+  fieldState: ControllerFieldState
+  formState: UseFormStateReturn<FieldValues>
 }
 
 type FormItemContextValue = {
@@ -83,8 +45,8 @@ const FormItem = React.forwardRef<
 FormItem.displayName = "FormItem"
 
 const FormLabel = React.forwardRef<
-  React.ElementRef<typeof Label>,
-  React.ComponentPropsWithoutRef<typeof Label>
+  React.ElementRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
   const { error, formItemId } = useFormField()
 
@@ -103,7 +65,8 @@ const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { error, formItemId, formDescriptionId, formMessageId } =
+    useFormField()
 
   return (
     <Slot
@@ -161,6 +124,137 @@ const FormMessage = React.forwardRef<
   )
 })
 FormMessage.displayName = "FormMessage"
+
+type ControllerRenderProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> = {
+  onChange: (...event: any[]) => void
+  onBlur: () => void
+  value: GetValue<TFieldValues, TName>
+  name: TName
+  ref: RefCallBack
+  disabled?: boolean
+}
+
+type ControllerFieldState = {
+  invalid: boolean
+  isDirty: boolean
+  isTouched: boolean
+  error?: FieldError
+}
+
+type UseFormStateReturn<TFieldValues extends FieldValues = FieldValues> = {
+  isDirty: boolean
+  isLoading: boolean
+  isSubmitted: boolean
+  isSubmitSuccessful: boolean
+  isSubmitting: boolean
+  isValidating: boolean
+  isValid: boolean
+  submitCount: number
+  errors: FieldErrors<TFieldValues>
+  touchedFields: FieldNamesMarkedBoolean<TFieldValues>
+  dirtyFields: FieldNamesMarkedBoolean<TFieldValues>
+}
+
+type FieldError = {
+  type: string
+  ref?: Ref
+  types?: MultipleFieldErrors
+  message?: string
+}
+
+type FieldErrors<
+  TFieldValues extends FieldValues = FieldValues
+> = DeepMap<TFieldValues, FieldError>
+
+type DeepMap<T, TValue> = {
+  [K in keyof T]?: T[K] extends object
+    ? T[K] extends Function
+      ? TValue
+      : T[K] extends readonly (infer U)[]
+      ? U extends object
+        ? DeepMap<U, TValue>[]
+        : TValue
+      : DeepMap<T[K], TValue>
+    : TValue
+}
+
+type FieldNamesMarkedBoolean<TFieldValues extends FieldValues> = DeepMap<
+  TFieldValues,
+  true
+>
+
+type GetValue<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = TName extends keyof TFieldValues
+  ? TFieldValues[TName]
+  : TName extends `${infer TKey}.${infer TRest}`
+  ? TKey extends keyof TFieldValues
+    ? GetValue<TFieldValues[TKey], TRest>
+    : undefined
+  : undefined
+
+type Ref =
+  | React.Ref<any>
+  | ((instance: any) => void)
+  | React.MutableRefObject<any>
+
+type RefCallBack = (instance: any) => void
+
+function useFormField() {
+  const fieldContext = React.useContext(FormField)
+  const itemContext = React.useContext(FormItemContext)
+  const { getFieldState, formState } = useFormContext()
+
+  const fieldState = getFieldState(fieldContext.name, formState)
+
+  if (!fieldContext) {
+    throw new Error("useFormField should be used within <FormField>")
+  }
+
+  const { id } = itemContext
+
+  return {
+    id,
+    name: fieldContext.name,
+    formItemId: `${id}-form-item`,
+    formDescriptionId: `${id}-form-item-description`,
+    formMessageId: `${id}-form-item-message`,
+    ...fieldState,
+  }
+}
+
+type FormFieldProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> = ControllerProps<TFieldValues, TName>
+
+const FormField = <
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  ...props
+}: FormFieldProps<TFieldValues, TName>) => {
+  return (
+    <Controller
+      {...props}
+      render={({ field, fieldState, formState }) => (
+        <FormFieldRenderPropsContext.Provider
+          value={{ field, fieldState, formState }}
+        >
+          {props.render({ field, fieldState, formState })}
+        </FormFieldRenderPropsContext.Provider>
+      )}
+    />
+  )
+}
+
+const FormFieldRenderPropsContext = React.createContext<FormFieldRenderProps>(
+  {} as FormFieldRenderProps
+)
 
 export {
   useFormField,

@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/button"
 type CarouselContextProps = {
   carouselRef: UseEmblaCarouselType[0]
   api: UseEmblaCarouselType[1]
-  scrollNext: () => void
   scrollPrev: () => void
-  canScrollNext: boolean
+  scrollNext: () => void
   canScrollPrev: boolean
+  canScrollNext: boolean
 } & React.ComponentPropsWithoutRef<"div">
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null)
@@ -59,6 +59,10 @@ const Carousel = React.forwardRef<
     const [canScrollNext, setCanScrollNext] = React.useState(false)
 
     const onSelect = React.useCallback((api: UseEmblaCarouselType[1]) => {
+      if (!api) {
+        return
+      }
+
       setCanScrollPrev(api.canScrollPrev())
       setCanScrollNext(api.canScrollNext())
     }, [])
@@ -89,13 +93,10 @@ const Carousel = React.forwardRef<
         return
       }
 
-      setApi?.(api)
-      api.on("select", onSelect)
+      onSelect(api)
       api.on("reInit", onSelect)
-
-      return () => {
-        api.off("select", onSelect)
-      }
+      api.on("select", onSelect)
+      setApi?.(api)
     }, [api, onSelect, setApi])
 
     return (
@@ -103,11 +104,11 @@ const Carousel = React.forwardRef<
         value={{
           carouselRef,
           api: api,
-          scrollNext,
           scrollPrev,
-          canScrollNext,
+          scrollNext,
           canScrollPrev,
-          ...props,
+          canScrollNext,
+          orientation,
         }}
       >
         <div
@@ -133,10 +134,7 @@ const CarouselContent = React.forwardRef<
   const { carouselRef, orientation } = useCarousel()
 
   return (
-    <div
-      ref={carouselRef}
-      className="overflow-hidden"
-    >
+    <div ref={carouselRef} className="overflow-hidden">
       <div
         ref={ref}
         className={cn(
@@ -177,7 +175,7 @@ const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
   React.ComponentPropsWithoutRef<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
-  const { scrollPrev, canScrollPrev } = useCarousel()
+  const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
   return (
     <Button
@@ -206,7 +204,7 @@ const CarouselNext = React.forwardRef<
   HTMLButtonElement,
   React.ComponentPropsWithoutRef<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
-  const { scrollNext, canScrollNext } = useCarousel()
+  const { orientation, scrollNext, canScrollNext } = useCarousel()
 
   return (
     <Button

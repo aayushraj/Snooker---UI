@@ -6,15 +6,15 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  TableComponent,
-  TableHeaderComponent,
-  TableRowComponent,
-  TableHeadComponent,
-  TableBodyComponent,
-  TableCellComponent,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { PlusCircle, Edit, Trash2 } from "lucide-react"
+import { PlusCircle, Edit, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -167,22 +167,22 @@ export function TableManagement() {
         {tables.length === 0 ? (
           <div className="text-center text-muted-foreground">No tables configured yet.</div>
         ) : (
-          <TableComponent>
-            <TableHeaderComponent>
-              <TableRowComponent>
-                <TableHeadComponent>Name</TableHeadComponent>
-                <TableHeadComponent>Hourly Rate</TableHeadComponent>
-                <TableHeadComponent>Location</TableHeadComponent>
-                <TableHeadComponent className="text-right">Actions</TableHeadComponent>
-              </TableRowComponent>
-            </TableHeaderComponent>
-            <TableBodyComponent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Hourly Rate</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {tables.map((table) => (
-                <TableRowComponent key={table.id}>
-                  <TableCellComponent className="font-medium">{table.name}</TableCellComponent>
-                  <TableCellComponent>${table.hourlyRate.toFixed(2)}</TableCellComponent>
-                  <TableCellComponent>{table.location}</TableCellComponent>
-                  <TableCellComponent className="text-right">
+                <TableRow key={table.id}>
+                  <TableCell className="font-medium">{table.name}</TableCell>
+                  <TableCell>${table.hourlyRate.toFixed(2)}</TableCell>
+                  <TableCell>{table.location}</TableCell>
+                  <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(table)} className="mr-2">
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Edit</span>
@@ -191,11 +191,11 @@ export function TableManagement() {
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Delete</span>
                     </Button>
-                  </TableCellComponent>
-                </TableRowComponent>
+                  </TableCell>
+                </TableRow>
               ))}
-            </TableBodyComponent>
-          </TableComponent>
+            </TableBody>
+          </Table>
         )}
       </CardContent>
 

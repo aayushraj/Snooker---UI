@@ -18,8 +18,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { SnookerTableTimer } from "./snooker-table-timer"
-import { Plus, Utensils, DollarSign } from "lucide-react"
+import { Plus, Utensils, DollarSign } from 'lucide-react'
 import { Separator } from "@/components/ui/separator"
+import { parseTimeSpanToMilliseconds } from "@/lib/utils"
 
 interface Table {
   id: string
@@ -39,6 +40,7 @@ interface Customer {
 interface Session {
   id: string
   tableId: string
+  table: Table // Added table object to session
   customerId: string
   customer: Customer
   startTime: string
@@ -316,13 +318,7 @@ export function TablesOverview() {
                 </p>
                 <SnookerTableTimer
                   startTime={table.currentSession.startTime}
-                  pausedDurationMs={
-                    // Parse ISO 8601 duration string to milliseconds
-                    table.currentSession.pausedDuration
-                      ? new Date(`2000-01-01T${table.currentSession.pausedDuration}`).getTime() -
-                        new Date("2000-01-01T00:00:00").getTime()
-                      : 0
-                  }
+                  pausedDurationMs={parseTimeSpanToMilliseconds(table.currentSession.pausedDuration)}
                   status={table.currentSession.status}
                 />
                 {table.currentSession.orders && table.currentSession.orders.length > 0 && (

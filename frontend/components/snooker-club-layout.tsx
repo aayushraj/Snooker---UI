@@ -1,9 +1,7 @@
 "use client"
 
-import { SidebarSeparator } from "@/components/ui/sidebar"
-
 import * as React from "react"
-import { Home, LayoutDashboard, Utensils, Users, DollarSign, ChevronDown, ChevronUp } from "lucide-react"
+import { Home, LayoutDashboard, Utensils, Users, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
@@ -24,6 +22,7 @@ import {
   SidebarRail,
   SidebarTrigger,
   SidebarInset,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
