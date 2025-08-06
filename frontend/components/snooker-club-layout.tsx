@@ -117,7 +117,7 @@ export function SnookerClubLayout() {
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-4">
-            <img src="/placeholder-logo.svg" alt="Snooker Club Logo" className="h-8 w-8" />
+            <img src="/placeholder-logo.png" alt="Snooker Club Logo" className="h-8 w-8" />
             <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">Elite Snooker</span>
           </div>
         </SidebarHeader>
@@ -218,7 +218,7 @@ export function SnookerClubLayout() {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton tooltip="User Profile">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src="/placeholder-user.jpg" />
+                      <AvatarImage src="/placeholder-user.png" />
                       <AvatarFallback>CN</AvatarFallback>
                     </Avatar>
                     <span className="group-data-[collapsible=icon]:hidden">Admin User</span>

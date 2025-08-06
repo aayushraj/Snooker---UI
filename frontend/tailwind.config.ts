@@ -53,12 +53,10 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         // Custom Snooker Colors
-        "snooker-green": {
-          DEFAULT: "hsl(var(--snooker-green))",
-          foreground: "hsl(var(--snooker-green-foreground))",
-        },
-        "snooker-gold": "hsl(var(--snooker-gold))",
+        "snooker-green": "hsl(var(--snooker-green))",
+        "snooker-green-foreground": "hsl(var(--snooker-green-foreground))",
         "snooker-blue": "hsl(var(--snooker-blue))",
+        "snooker-gold": "hsl(var(--snooker-gold))",
       },
       borderRadius: {
         lg: "var(--radius)",

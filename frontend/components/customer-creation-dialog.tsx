@@ -17,8 +17,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { PlusCircle } from 'lucide-react'
 
+interface Customer {
+  id: string
+  name: string
+  contactInfo: string
+  membershipType: string
+  discountPercentage: number
+}
+
 interface CustomerCreationDialogProps {
-  onCustomerCreated?: () => void
+  onCustomerCreated: (customer: Customer) => void
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"
@@ -55,15 +63,16 @@ export function CustomerCreationDialog({ onCustomerCreated }: CustomerCreationDi
         throw new Error(errorData.title || `HTTP error! status: ${response.status}`)
       }
 
-      toast.success("Customer added successfully!")
+      const newCustomer: Customer = await response.json()
+      toast.success(`Customer ${newCustomer.name} created successfully!`)
+      onCustomerCreated(newCustomer)
       setDialogOpen(false)
       setCustomerName("")
       setContactInfo("")
       setMembershipType("Standard")
-      onCustomerCreated?.() // Callback to refresh customer list in parent
     } catch (error: any) {
-      console.error("Failed to add customer:", error)
-      toast.error(`Failed to add customer: ${error.message || "Unknown error"}`)
+      console.error("Failed to create customer:", error)
+      toast.error(`Failed to create customer: ${error.message || "Unknown error"}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -78,8 +87,10 @@ export function CustomerCreationDialog({ onCustomerCreated }: CustomerCreationDi
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Customer</DialogTitle>
-          <DialogDescription>Fill in the details to register a new customer.</DialogDescription>
+          <DialogTitle>Create New Customer</DialogTitle>
+          <DialogDescription>
+            Fill in the details to add a new customer to your club.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -95,20 +106,19 @@ export function CustomerCreationDialog({ onCustomerCreated }: CustomerCreationDi
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="contact" className="text-right">
+            <Label htmlFor="contactInfo" className="text-right">
               Contact Info
             </Label>
             <Input
-              id="contact"
+              id="contactInfo"
               value={contactInfo}
               onChange={(e) => setContactInfo(e.target.value)}
               className="col-span-3"
-              placeholder="Email or Phone"
               disabled={isSubmitting}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="membership" className="text-right">
+            <Label htmlFor="membershipType" className="text-right">
               Membership
             </Label>
             <Select
@@ -121,8 +131,8 @@ export function CustomerCreationDialog({ onCustomerCreated }: CustomerCreationDi
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Standard">Standard</SelectItem>
-                <SelectItem value="Premium">Premium</SelectItem>
-                {/* Add more membership types as needed */}
+                <SelectItem value="Premium">Premium (10% Discount)</SelectItem>
+                <SelectItem value="VIP">VIP (20% Discount)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -131,8 +141,8 @@ export function CustomerCreationDialog({ onCustomerCreated }: CustomerCreationDi
           <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Adding..." : "Add Customer"}
+          <Button onClick={handleSubmit} disabled={isSubmitting || !customerName.trim() || !contactInfo.trim()}>
+            {isSubmitting ? "Creating..." : "Create Customer"}
           </Button>
         </DialogFooter>
       </DialogContent>

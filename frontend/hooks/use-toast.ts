@@ -1,162 +1,82 @@
-// Inspired by react-hot-toast library
 import * as React from "react"
 
-import type { ToastProps } from "@/components/ui/toast"
+import { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
-type ToasterToast = ToastProps & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: React.ReactNode
-}
-
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
+type ToastsList = ToastProps[]
 
 let count = 0
 
 function genId() {
-  count = (count + 1) % Number.MAX_VALUE
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
 }
 
-type ActionType = typeof actionTypes
+const toastStore = new Map<string, ToastProps>()
 
-type State = {
-  toasts: ToasterToast[]
+function publish(toast: ToastProps) {
+  toastStore.set(toast.id, toast)
+  // This is a simplified publish mechanism. In a real app, you'd use a state management library
+  // like Zustand, Redux, or React Context with a reducer to manage toasts.
+  // For this example, we'll just re-render the Toaster component by updating a dummy state.
+  // This is not ideal for performance in a large application but works for a simple demo.
+  window.dispatchEvent(new CustomEvent("toast-update"))
 }
 
-type Action =
-  | {
-      type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
-    }
-  | {
-      type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
-    }
-  | {
-      type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-  | {
-      type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-
-const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      }
-
-    case "UPDATE_TOAST":
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
-      }
-
-    case "DISMISS_TOAST":
-      const { toastId } = action
-
-      // ! Side effect ! - This means all toasts will be dismissed if no toastId is passed
-      if (toastId) {
-        return {
-          ...state,
-          toasts: state.toasts.map((t) =>
-            t.id === toastId ? { ...t, open: false } : t
-          ),
-        }
-      } else {
-        return {
-          ...state,
-          toasts: state.toasts.map((t) => ({ ...t, open: false })),
-        }
-      }
-
-    case "REMOVE_TOAST":
-      if (action.toastId === undefined) {
-        return {
-          ...state,
-          toasts: [],
-        }
-      }
-      return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
-      }
+function remove(id?: string) {
+  if (id) {
+    toastStore.delete(id)
+  } else {
+    toastStore.clear()
   }
+  window.dispatchEvent(new CustomEvent("toast-update"))
 }
 
-const listeners: ((state: State) => void)[] = []
-
-let memoryState: State = { toasts: [] }
-
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => listener(memoryState))
-}
-
-type Toast = Omit<ToasterToast, "id">
+type Toast = Omit<ToastProps, "id">
 
 function toast({ ...props }: Toast) {
   const id = genId()
 
-  const update = (props: ToasterToast) =>
-    dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+  const update = (props: ToastProps) => {
+    publish({ id, ...props })
+  }
+  const dismiss = () => {
+    remove(id)
+  }
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
+  publish({
+    id,
+    onOpenChange: (open) => {
+      if (!open) dismiss()
     },
+    ...props,
   })
 
   return {
     id: id,
-    update,
     dismiss,
+    update,
   }
 }
 
-function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
+export function useToast() {
+  const [toasts, setToasts] = React.useState<ToastsList>([])
 
   React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
+    const handleUpdate = () => {
+      setToasts(Array.from(toastStore.values()))
     }
-  }, [state])
+    window.addEventListener("toast-update", handleUpdate)
+    return () => {
+      window.removeEventListener("toast-update", handleUpdate)
+    }
+  }, [])
 
   return {
-    ...state,
+    toasts,
     toast,
-    dismiss: React.useCallback(
-      (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-      []
-    ),
+    dismiss: remove,
   }
 }
-
-export { useToast, toast }

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // For Electron, we need a static export
+  output: "export", // For Electron build
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,7 +8,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true, // For Electron build
   },
 };
 
