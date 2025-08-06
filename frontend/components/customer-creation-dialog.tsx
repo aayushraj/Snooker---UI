@@ -15,99 +15,124 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { PlusCircle } from 'lucide-react'
 
 interface CustomerCreationDialogProps {
-  onCustomerCreated: () => void
+  onCustomerCreated?: () => void
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"
 
 export function CustomerCreationDialog({ onCustomerCreated }: CustomerCreationDialogProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [customerName, setCustomerName] = useState("")
-  const [membershipType, setMembershipType] = useState("None")
-  const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [contactInfo, setContactInfo] = useState("")
+  const [membershipType, setMembershipType] = useState("Standard")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleCreateCustomer = async () => {
-    if (!customerName.trim()) {
-      toast.error("Customer name cannot be empty.")
+  const handleSubmit = async () => {
+    if (!customerName.trim() || !contactInfo.trim()) {
+      toast.error("Name and Contact Info are required.")
       return
     }
 
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       const response = await fetch(`${API_BASE_URL}/api/customers`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name: customerName, membershipType }),
+        body: JSON.stringify({
+          name: customerName,
+          contactInfo: contactInfo,
+          membershipType: membershipType,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorData = await response.json()
+        throw new Error(errorData.title || `HTTP error! status: ${response.status}`)
       }
 
-      const newCustomer = await response.json()
-      toast.success(`Customer "${newCustomer.name}" created successfully!`)
+      toast.success("Customer added successfully!")
+      setDialogOpen(false)
       setCustomerName("")
-      setMembershipType("None")
-      setIsOpen(false)
-      onCustomerCreated() // Notify parent component
-    } catch (error) {
-      console.error("Failed to create customer:", error)
-      toast.error("Failed to create customer. Please try again.")
+      setContactInfo("")
+      setMembershipType("Standard")
+      onCustomerCreated?.() // Callback to refresh customer list in parent
+    } catch (error: any) {
+      console.error("Failed to add customer:", error)
+      toast.error(`Failed to add customer: ${error.message || "Unknown error"}`)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button>Create New Customer</Button>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add New Customer
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Customer</DialogTitle>
-          <DialogDescription>Enter the customer's name and select their membership type.</DialogDescription>
+          <DialogTitle>Add New Customer</DialogTitle>
+          <DialogDescription>Fill in the details to register a new customer.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="customerName" className="text-right">
+            <Label htmlFor="name" className="text-right">
               Name
             </Label>
             <Input
-              id="customerName"
+              id="name"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               className="col-span-3"
-              disabled={isLoading}
+              disabled={isSubmitting}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="membershipType" className="text-right">
+            <Label htmlFor="contact" className="text-right">
+              Contact Info
+            </Label>
+            <Input
+              id="contact"
+              value={contactInfo}
+              onChange={(e) => setContactInfo(e.target.value)}
+              className="col-span-3"
+              placeholder="Email or Phone"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="membership" className="text-right">
               Membership
             </Label>
-            <Select value={membershipType} onValueChange={setMembershipType} disabled={isLoading}>
+            <Select
+              onValueChange={setMembershipType}
+              value={membershipType}
+              disabled={isSubmitting}
+            >
               <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select membership" />
+                <SelectValue placeholder="Select membership type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="None">None</SelectItem>
-                <SelectItem value="Basic">Basic</SelectItem>
+                <SelectItem value="Standard">Standard</SelectItem>
                 <SelectItem value="Premium">Premium</SelectItem>
-                <SelectItem value="VIP">VIP</SelectItem>
+                {/* Add more membership types as needed */}
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={() => setIsOpen(false)} variant="outline" disabled={isLoading}>
+          <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleCreateCustomer} disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Customer"}
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Adding..." : "Add Customer"}
           </Button>
         </DialogFooter>
       </DialogContent>

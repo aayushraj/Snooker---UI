@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { cn } from "@/lib/utils"
+import React, { useState, useEffect, useRef } from "react"
+import { formatDuration, intervalToDuration } from "date-fns"
 
 interface SnookerTableTimerProps {
-  startTime: string
-  pausedDurationMs: number
+  startTime: string // ISO string
+  pausedDurationMs: number // Total milliseconds the session has been paused
   status: "Active" | "Paused" | "Ended"
 }
 
@@ -13,27 +13,39 @@ export function SnookerTableTimer({ startTime, pausedDurationMs, status }: Snook
   const [elapsedTime, setElapsedTime] = useState(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  const calculateElapsedTime = () => {
+    const start = new Date(startTime).getTime()
+    const now = Date.now()
+    return now - start - pausedDurationMs
+  }
+
   useEffect(() => {
-    const startTimestamp = new Date(startTime).getTime()
-
-    const calculateElapsedTime = () => {
-      if (status === "Active") {
-        const now = Date.now()
-        const currentElapsedTime = now - startTimestamp - pausedDurationMs
-        setElapsedTime(currentElapsedTime > 0 ? currentElapsedTime : 0)
-      }
-    }
-
     if (status === "Active") {
-      intervalRef.current = setInterval(calculateElapsedTime, 1000)
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
+      // Clear any existing interval to prevent duplicates
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+
+      // Initialize elapsed time
+      setElapsedTime(calculateElapsedTime())
+
+      // Set up interval to update every second
+      intervalRef.current = setInterval(() => {
+        setElapsedTime(calculateElapsedTime())
+      }, 1000)
+    } else {
+      // If paused or ended, clear the interval
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      // For paused/ended, ensure the displayed time is accurate based on the last known state
+      // This might need to be adjusted if the backend sends the *current* total elapsed time
+      // rather than just start time and paused duration. For now, we recalculate based on start and total paused.
+      setElapsedTime(calculateElapsedTime())
     }
 
-    // Set initial elapsed time when component mounts or status changes
-    calculateElapsedTime()
-
+    // Cleanup on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
@@ -41,29 +53,31 @@ export function SnookerTableTimer({ startTime, pausedDurationMs, status }: Snook
     }
   }, [startTime, pausedDurationMs, status])
 
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000)
-    const hours = Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
+  const duration = intervalToDuration({ start: 0, end: elapsedTime })
 
-    return [hours, minutes, seconds].map((unit) => String(unit).padStart(2, "0")).join(":")
-  }
-
-  const timerColorClass = cn(
-    "font-mono text-lg",
-    status === "Active" && "text-snooker-green",
-    status === "Paused" && "text-snooker-blue",
-    status === "Ended" && "text-muted-foreground",
-  )
+  const formattedDuration = formatDuration(duration, {
+    format: ["hours", "minutes", "seconds"],
+    zero: true,
+    delimiter: ":",
+    locale: {
+      formatDistance: (token, count) => {
+        if (token === "xHours") return `${count.toString().padStart(2, "0")}`
+        if (token === "xMinutes") return `${count.toString().padStart(2, "0")}`
+        if (token === "xSeconds") return `${count.toString().padStart(2, "0")}`
+        return ""
+      },
+    },
+  })
 
   return (
-    <div className="flex flex-col items-center">
-      <span className={timerColorClass}>{formatTime(elapsedTime)}</span>
-      <span className="text-xs text-muted-foreground">
-        {status === "Active" && "Running"}
-        {status === "Paused" && "Paused"}
-        {status === "Ended" && "Ended"}
+    <div className="text-lg font-semibold">
+      Time: <span className="tabular-nums">{formattedDuration}</span>
+      <span
+        className={`ml-2 text-sm font-normal ${
+          status === "Active" ? "text-green-500" : status === "Paused" ? "text-snooker-blue" : "text-red-500"
+        }`}
+      >
+        ({status})
       </span>
     </div>
   )

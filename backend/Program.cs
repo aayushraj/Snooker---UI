@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using SnookerClubApi.Models;
 using System;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,105 +21,64 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "SnookerClubApi", Version = "v1" });
-});
+builder.Services.AddSwaggerGen();
 
 // Configure SQLite database
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure CORS
+// Add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5001") // Allow Next.js dev server and self
-                         .AllowAnyHeader()
-                         .AllowAnyMethod());
+        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Allow your frontend origin
+                          .AllowAnyHeader()
+                          .AllowAnyMethod());
 });
 
 var app = builder.Build();
-
-// Apply migrations and seed data on startup
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate(); // Apply any pending migrations
-        SeedData.Initialize(context); // Seed initial data
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
-    }
-}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SnookerClubApi v1"));
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowSpecificOrigin"); // Use the CORS policy
+
+// Use CORS policy
+app.UseCors("AllowSpecificOrigin");
+
+// Apply migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // API Endpoints
-// Dashboard Stats
-app.MapGet("/api/dashboard/stats", async (AppDbContext db) =>
-{
-    var totalTables = await db.Tables.CountAsync();
-    var activeSessions = await db.Sessions.Where(s => s.Status == SessionStatus.Active).ToListAsync();
-    var pausedSessions = await db.Sessions.Where(s => s.Status == SessionStatus.Paused).ToListAsync();
-    var availableTables = totalTables - activeSessions.Count - pausedSessions.Count;
-    var reservedTables = 0; // Placeholder for future booking system
-
-    var totalRevenue = await db.Bills.SumAsync(b => b.GrandTotal);
-    var tableRevenue = await db.Bills.SumAsync(b => b.TableCharges);
-    var orderRevenue = await db.Bills.SumAsync(b => b.OrderCharges);
-
-    var activeCustomers = await db.Sessions.Where(s => s.Status == SessionStatus.Active || s.Status == SessionStatus.Paused)
-                                            .Select(s => s.CustomerId)
-                                            .Distinct()
-                                            .CountAsync();
-    var totalOrders = await db.Orders.CountAsync(); // Count all orders
-
-    return Results.Ok(new
-    {
-        ActiveTables = activeSessions.Count,
-        PausedTables = pausedSessions.Count,
-        AvailableTables = availableTables > 0 ? availableTables : 0, // Ensure non-negative
-        ReservedTables = reservedTables,
-        TotalRevenue = totalRevenue,
-        TableRevenue = tableRevenue,
-        OrderRevenue = orderRevenue,
-        ActiveCustomers = activeCustomers,
-        TotalOrders = totalOrders
-    });
-});
-
-// Tables API
-app.MapGet("/api/tables", async (AppDbContext db) =>
+app.MapGet("/api/tables", async (ApplicationDbContext db) =>
 {
     var tables = await db.Tables
         .Include(t => t.CurrentSession)
             .ThenInclude(s => s.Customer)
+        .Include(t => t.CurrentSession)
+            .ThenInclude(s => s.Orders)
+                .ThenInclude(o => o.OrderItems)
+                    .ThenInclude(oi => oi.MenuItem)
         .ToListAsync();
     return Results.Ok(tables);
 });
 
-app.MapPost("/api/tables", async (Table table, AppDbContext db) =>
+app.MapPost("/api/tables", async (Table table, ApplicationDbContext db) =>
 {
     db.Tables.Add(table);
     await db.SaveChangesAsync();
     return Results.Created($"/api/tables/{table.Id}", table);
 });
 
-app.MapPut("/api/tables/{id}", async (Guid id, Table updatedTable, AppDbContext db) =>
+app.MapPut("/api/tables/{id}", async (Guid id, Table updatedTable, ApplicationDbContext db) =>
 {
     var table = await db.Tables.FindAsync(id);
     if (table == null) return Results.NotFound();
@@ -131,7 +91,7 @@ app.MapPut("/api/tables/{id}", async (Guid id, Table updatedTable, AppDbContext 
     return Results.NoContent();
 });
 
-app.MapDelete("/api/tables/{id}", async (Guid id, AppDbContext db) =>
+app.MapDelete("/api/tables/{id}", async (Guid id, ApplicationDbContext db) =>
 {
     var table = await db.Tables.FindAsync(id);
     if (table == null) return Results.NotFound();
@@ -141,174 +101,33 @@ app.MapDelete("/api/tables/{id}", async (Guid id, AppDbContext db) =>
     return Results.NoContent();
 });
 
-// Customers API
-app.MapGet("/api/customers", async (AppDbContext db) =>
+app.MapGet("/api/customers", async (ApplicationDbContext db) =>
 {
-    return Results.Ok(await db.Customers.ToListAsync());
+    var customers = await db.Customers.ToListAsync();
+    return Results.Ok(customers);
 });
 
-app.MapPost("/api/customers", async (Customer customer, AppDbContext db) =>
+app.MapPost("/api/customers", async (Customer customer, ApplicationDbContext db) =>
 {
-    // Set discount based on membership type
-    customer.DiscountPercentage = customer.MembershipType switch
-    {
-        MembershipType.Basic => 0.05m,
-        MembershipType.Premium => 0.10m,
-        MembershipType.VIP => 0.15m,
-        _ => 0m
-    };
     db.Customers.Add(customer);
     await db.SaveChangesAsync();
     return Results.Created($"/api/customers/{customer.Id}", customer);
 });
 
-// Sessions API
-app.MapPost("/api/sessions/start", async (StartSessionRequest request, AppDbContext db) =>
+app.MapGet("/api/menu", async (ApplicationDbContext db) =>
 {
-    var table = await db.Tables.Include(t => t.CurrentSession).FirstOrDefaultAsync(t => t.Id == request.TableId);
-    if (table == null) return Results.NotFound("Table not found.");
-    if (table.CurrentSession != null) return Results.BadRequest("Table is already occupied.");
-
-    var customer = await db.Customers.FindAsync(request.CustomerId);
-    if (customer == null) return Results.NotFound("Customer not found.");
-
-    var session = new Session
-    {
-        TableId = request.TableId,
-        CustomerId = request.CustomerId,
-        StartTime = DateTime.UtcNow,
-        Status = SessionStatus.Active,
-        HourlyRate = table.HourlyRate,
-        DiscountPercentage = customer.DiscountPercentage
-    };
-
-    db.Sessions.Add(session);
-    table.CurrentSession = session; // Link session to table
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/sessions/{session.Id}", session);
+    var menuItems = await db.MenuItems.ToListAsync();
+    return Results.Ok(menuItems);
 });
 
-app.MapPost("/api/sessions/{id}/pause", async (Guid id, AppDbContext db) =>
-{
-    var session = await db.Sessions.FindAsync(id);
-    if (session == null) return Results.NotFound();
-    if (session.Status != SessionStatus.Active) return Results.BadRequest("Session is not active.");
-
-    session.Status = SessionStatus.Paused;
-    session.PausedAt = DateTime.UtcNow;
-    await db.SaveChangesAsync();
-    return Results.Ok(session);
-});
-
-app.MapPost("/api/sessions/{id}/resume", async (Guid id, AppDbContext db) =>
-{
-    var session = await db.Sessions.FindAsync(id);
-    if (session == null) return Results.NotFound();
-    if (session.Status != SessionStatus.Paused) return Results.BadRequest("Session is not paused.");
-    if (!session.PausedAt.HasValue) return Results.BadRequest("Session was not properly paused.");
-
-    session.Status = SessionStatus.Active;
-    session.PausedDuration += (DateTime.UtcNow - session.PausedAt.Value);
-    session.PausedAt = null;
-    await db.SaveChangesAsync();
-    return Results.Ok(session);
-});
-
-app.MapPost("/api/sessions/{id}/end", async (Guid id, AppDbContext db) =>
-{
-    var session = await db.Sessions
-        .Include(s => s.Table)
-        .Include(s => s.Customer)
-        .Include(s => s.Orders)
-            .ThenInclude(o => o.OrderItems)
-                .ThenInclude(oi => oi.MenuItem)
-        .FirstOrDefaultAsync(s => s.Id == id);
-
-    if (session == null) return Results.NotFound();
-    if (session.Status == SessionStatus.Ended) return Results.BadRequest("Session already ended.");
-
-    session.Status = SessionStatus.Ended;
-    session.EndTime = DateTime.UtcNow;
-
-    // Calculate duration
-    var totalDuration = (session.EndTime.Value - session.StartTime) - session.PausedDuration;
-    session.DurationMilliseconds = (long)totalDuration.TotalMilliseconds;
-
-    // Calculate table charges
-    var totalHours = (decimal)totalDuration.TotalHours;
-    session.TableCharges = totalHours * session.HourlyRate;
-
-    // Calculate order charges
-    session.OrderCharges = session.Orders.SelectMany(o => o.OrderItems).Sum(oi => oi.Quantity * oi.MenuItem.Price);
-
-    // Calculate subtotal
-    session.Subtotal = session.TableCharges + session.OrderCharges;
-
-    // Apply discount
-    session.DiscountAmount = session.Subtotal * session.DiscountPercentage;
-    var discountedSubtotal = session.Subtotal - session.DiscountAmount;
-
-    // Apply tax (e.g., 10%)
-    session.TaxRate = 0.10m; // 10% tax
-    session.TaxAmount = discountedSubtotal * session.TaxRate;
-
-    // Calculate grand total
-    session.GrandTotal = discountedSubtotal + session.TaxAmount;
-
-    // Create a bill
-    var bill = new Bill
-    {
-        SessionId = session.Id,
-        TableId = session.TableId.ToString(),
-        TableName = session.Table.Name,
-        CustomerId = session.CustomerId.ToString(),
-        CustomerName = session.Customer.Name,
-        MembershipType = session.Customer.MembershipType,
-        StartTime = session.StartTime,
-        EndTime = session.EndTime.Value,
-        DurationMilliseconds = session.DurationMilliseconds,
-        HourlyRate = session.HourlyRate,
-        TableCharges = session.TableCharges,
-        OrderItems = session.Orders.SelectMany(o => o.OrderItems).Select(oi => new BillOrderItem
-        {
-            MenuItemId = oi.MenuItemId.ToString(),
-            MenuItemName = oi.MenuItem.Name,
-            Quantity = oi.Quantity,
-            Price = oi.MenuItem.Price,
-            Total = oi.Quantity * oi.MenuItem.Price
-        }).ToList(),
-        OrderCharges = session.OrderCharges,
-        Subtotal = session.Subtotal,
-        DiscountPercentage = session.DiscountPercentage,
-        DiscountAmount = session.DiscountAmount,
-        TaxRate = session.TaxRate,
-        TaxAmount = session.TaxAmount,
-        GrandTotal = session.GrandTotal,
-        Status = "Paid" // Assuming immediate payment for simplicity
-    };
-    db.Bills.Add(bill);
-
-    // Detach session from table
-    session.Table.CurrentSession = null;
-
-    await db.SaveChangesAsync();
-    return Results.Ok(bill);
-});
-
-// Menu API
-app.MapGet("/api/menu", async (AppDbContext db) =>
-{
-    return Results.Ok(await db.MenuItems.ToListAsync());
-});
-
-app.MapPost("/api/menu", async (MenuItem item, AppDbContext db) =>
+app.MapPost("/api/menu", async (MenuItem item, ApplicationDbContext db) =>
 {
     db.MenuItems.Add(item);
     await db.SaveChangesAsync();
     return Results.Created($"/api/menu/{item.Id}", item);
 });
 
-app.MapPut("/api/menu/{id}", async (Guid id, MenuItem updatedItem, AppDbContext db) =>
+app.MapPut("/api/menu/{id}", async (Guid id, MenuItem updatedItem, ApplicationDbContext db) =>
 {
     var item = await db.MenuItems.FindAsync(id);
     if (item == null) return Results.NotFound();
@@ -323,7 +142,7 @@ app.MapPut("/api/menu/{id}", async (Guid id, MenuItem updatedItem, AppDbContext 
     return Results.NoContent();
 });
 
-app.MapDelete("/api/menu/{id}", async (Guid id, AppDbContext db) =>
+app.MapDelete("/api/menu/{id}", async (Guid id, ApplicationDbContext db) =>
 {
     var item = await db.MenuItems.FindAsync(id);
     if (item == null) return Results.NotFound();
@@ -333,11 +152,143 @@ app.MapDelete("/api/menu/{id}", async (Guid id, AppDbContext db) =>
     return Results.NoContent();
 });
 
-// Orders API
-app.MapPost("/api/orders", async (OrderRequest request, AppDbContext db) =>
+app.MapPost("/api/sessions/start", async (StartSessionRequest request, ApplicationDbContext db) =>
+{
+    var table = await db.Tables.Include(t => t.CurrentSession).FirstOrDefaultAsync(t => t.Id == request.TableId);
+    if (table == null) return Results.NotFound("Table not found.");
+    if (table.CurrentSession != null) return Results.BadRequest("Table is already in session.");
+
+    var customer = await db.Customers.FindAsync(request.CustomerId);
+    if (customer == null) return Results.NotFound("Customer not found.");
+
+    var session = new Session
+    {
+        TableId = request.TableId,
+        CustomerId = request.CustomerId,
+        StartTime = DateTime.UtcNow,
+        Status = "Active",
+        HourlyRate = table.HourlyRate,
+        DiscountPercentage = customer.MembershipType == "Premium" ? 0.10m : 0m // Example discount
+    };
+
+    db.Sessions.Add(session);
+    table.CurrentSession = session; // Link session to table
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/sessions/{session.Id}", session);
+});
+
+app.MapPost("/api/sessions/{id}/pause", async (Guid id, ApplicationDbContext db) =>
+{
+    var session = await db.Sessions.FindAsync(id);
+    if (session == null) return Results.NotFound();
+    if (session.Status != "Active") return Results.BadRequest("Session is not active.");
+
+    session.Status = "Paused";
+    session.PausedAt = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapPost("/api/sessions/{id}/resume", async (Guid id, ApplicationDbContext db) =>
+{
+    var session = await db.Sessions.FindAsync(id);
+    if (session == null) return Results.NotFound();
+    if (session.Status != "Paused") return Results.BadRequest("Session is not paused.");
+
+    if (session.PausedAt.HasValue)
+    {
+        session.PausedDuration += (DateTime.UtcNow - session.PausedAt.Value);
+        session.PausedAt = null;
+    }
+    session.Status = "Active";
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapPost("/api/sessions/{id}/end", async (Guid id, ApplicationDbContext db) =>
+{
+    var session = await db.Sessions
+        .Include(s => s.Table)
+        .Include(s => s.Customer)
+        .Include(s => s.Orders)
+            .ThenInclude(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+        .FirstOrDefaultAsync(s => s.Id == id);
+
+    if (session == null) return Results.NotFound();
+    if (session.Status == "Ended") return Results.BadRequest("Session already ended.");
+
+    session.EndTime = DateTime.UtcNow;
+    session.Status = "Ended";
+
+    // Calculate table charges
+    var totalPlayDuration = (session.EndTime.Value - session.StartTime) - session.PausedDuration;
+    var tableCharges = (decimal)totalPlayDuration.TotalHours * session.HourlyRate;
+
+    // Calculate order charges
+    decimal orderCharges = 0;
+    var billOrderItems = new List<BillOrderItem>();
+    foreach (var order in session.Orders)
+    {
+        foreach (var orderItem in order.OrderItems)
+        {
+            var itemTotal = orderItem.Quantity * orderItem.MenuItem.Price;
+            orderCharges += itemTotal;
+            billOrderItems.Add(new BillOrderItem
+            {
+                MenuItemId = orderItem.MenuItemId,
+                MenuItemName = orderItem.MenuItem.Name,
+                Quantity = orderItem.Quantity,
+                Price = orderItem.MenuItem.Price,
+                Total = itemTotal
+            });
+        }
+    }
+
+    var subtotal = tableCharges + orderCharges;
+    var discountAmount = subtotal * session.DiscountPercentage;
+    var taxableAmount = subtotal - discountAmount;
+    var taxRate = 0.05m; // Example tax rate
+    var taxAmount = taxableAmount * taxRate;
+    var grandTotal = taxableAmount + taxAmount;
+
+    var bill = new Bill
+    {
+        SessionId = session.Id,
+        TableId = session.TableId,
+        TableName = session.Table.Name,
+        CustomerId = session.CustomerId,
+        CustomerName = session.Customer.Name,
+        MembershipType = session.Customer.MembershipType,
+        StartTime = session.StartTime,
+        EndTime = session.EndTime.Value,
+        DurationMilliseconds = (long)totalPlayDuration.TotalMilliseconds,
+        HourlyRate = session.HourlyRate,
+        TableCharges = tableCharges,
+        OrderItems = billOrderItems,
+        OrderCharges = orderCharges,
+        Subtotal = subtotal,
+        DiscountPercentage = session.DiscountPercentage,
+        DiscountAmount = discountAmount,
+        TaxRate = taxRate,
+        TaxAmount = taxAmount,
+        GrandTotal = grandTotal,
+        Status = "Completed"
+    };
+
+    db.Bills.Add(bill);
+    session.Table.CurrentSession = null; // Free up the table
+    await db.SaveChangesAsync();
+
+    return Results.Ok(bill);
+});
+
+app.MapPost("/api/orders", async (CreateOrderRequest request, ApplicationDbContext db) =>
 {
     var session = await db.Sessions.Include(s => s.Orders).FirstOrDefaultAsync(s => s.Id == request.SessionId);
     if (session == null) return Results.NotFound("Session not found.");
+    if (session.Status != "Active") return Results.BadRequest("Cannot add orders to a non-active session.");
 
     var order = new Order
     {
@@ -365,14 +316,39 @@ app.MapPost("/api/orders", async (OrderRequest request, AppDbContext db) =>
     return Results.Created($"/api/orders/{order.Id}", order);
 });
 
-app.MapGet("/api/orders/{sessionId}", async (Guid sessionId, AppDbContext db) =>
+app.MapGet("/api/bills", async (ApplicationDbContext db) =>
 {
-    var orders = await db.Orders
-        .Where(o => o.SessionId == sessionId)
-        .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.MenuItem)
-        .ToListAsync();
-    return Results.Ok(orders);
+    var bills = await db.Bills.OrderByDescending(b => b.EndTime).ToListAsync();
+    return Results.Ok(bills);
+});
+
+app.MapGet("/api/dashboard/stats", async (ApplicationDbContext db) =>
+{
+    var activeSessions = await db.Sessions.Where(s => s.Status == "Active").CountAsync();
+    var pausedSessions = await db.Sessions.Where(s => s.Status == "Paused").CountAsync();
+    var availableTables = await db.Tables.Where(t => t.CurrentSession == null).CountAsync();
+    var reservedTables = 0; // Placeholder for future booking system
+
+    var totalRevenue = await db.Bills.SumAsync(b => b.GrandTotal);
+    var tableRevenue = await db.Bills.SumAsync(b => b.TableCharges);
+    var orderRevenue = await db.Bills.SumAsync(b => b.OrderCharges);
+    var activeCustomers = await db.Sessions.Where(s => s.Status == "Active").Select(s => s.CustomerId).Distinct().CountAsync();
+    var totalOrders = await db.Orders.CountAsync();
+
+    var stats = new DashboardStats
+    {
+        ActiveTables = activeSessions,
+        PausedTables = pausedSessions,
+        AvailableTables = availableTables,
+        ReservedTables = reservedTables,
+        TotalRevenue = totalRevenue,
+        TableRevenue = tableRevenue,
+        OrderRevenue = orderRevenue,
+        ActiveCustomers = activeCustomers,
+        TotalOrders = totalOrders
+    };
+
+    return Results.Ok(stats);
 });
 
 app.Run();
@@ -383,59 +359,20 @@ public class Table
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public decimal HourlyRate { get; set; }
-    public string Location { get; set; } = string.Empty; // e.g., "Main Hall", "VIP Room"
-    public Session? CurrentSession { get; set; } // Navigation property for current session
+    public string Location { get; set; } = string.Empty;
+
+    // Navigation property for current session
+    public Session? CurrentSession { get; set; }
 }
 
 public class Customer
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
-    public MembershipType MembershipType { get; set; } = MembershipType.None;
+    public string ContactInfo { get; set; } = string.Empty;
+    public string MembershipType { get; set; } = "Standard"; // e.g., Standard, Premium
+    public DateTime RegistrationDate { get; set; } = DateTime.UtcNow;
     public decimal DiscountPercentage { get; set; } = 0m;
-}
-
-public enum MembershipType
-{
-    None,
-    Basic,
-    Premium,
-    VIP
-}
-
-public class Session
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid TableId { get; set; }
-    public Table Table { get; set; } = null!;
-    public Guid CustomerId { get; set; }
-    public Customer Customer { get; set; } = null!;
-    public DateTime StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
-    public TimeSpan PausedDuration { get; set; } = TimeSpan.Zero;
-    public DateTime? PausedAt { get; set; }
-    public SessionStatus Status { get; set; } = SessionStatus.Active;
-    public decimal HourlyRate { get; set; } // Rate at the time of session start
-    public decimal DiscountPercentage { get; set; } // Discount at the time of session start
-
-    // Calculated fields for billing
-    public long DurationMilliseconds { get; set; }
-    public decimal TableCharges { get; set; }
-    public decimal OrderCharges { get; set; }
-    public decimal Subtotal { get; set; }
-    public decimal DiscountAmount { get; set; }
-    public decimal TaxRate { get; set; }
-    public decimal TaxAmount { get; set; }
-    public decimal GrandTotal { get; set; }
-
-    public ICollection<Order> Orders { get; set; } = new List<Order>();
-}
-
-public enum SessionStatus
-{
-    Active,
-    Paused,
-    Ended
 }
 
 public class MenuItem
@@ -444,16 +381,35 @@ public class MenuItem
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal Price { get; set; }
-    public string Category { get; set; } = string.Empty; // e.g., "Beverages", "Snacks", "Meals", "Alcohol"
+    public string Category { get; set; } = string.Empty; // e.g., Food, Drink, Equipment
     public bool IsAvailable { get; set; } = true;
+}
+
+public class Session
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TableId { get; set; }
+    public Table Table { get; set; } = null!; // Navigation property
+    public Guid CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!; // Navigation property
+    public DateTime StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public TimeSpan PausedDuration { get; set; } = TimeSpan.Zero;
+    public DateTime? PausedAt { get; set; }
+    public string Status { get; set; } = "Active"; // Active, Paused, Ended
+    public decimal HourlyRate { get; set; }
+    public decimal DiscountPercentage { get; set; }
+
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
 }
 
 public class Order
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid SessionId { get; set; }
-    public Session Session { get; set; } = null!;
-    public DateTime OrderTime { get; set; }
+    public Session Session { get; set; } = null!; // Navigation property
+    public DateTime OrderTime { get; set; } = DateTime.UtcNow;
+
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }
 
@@ -461,9 +417,9 @@ public class OrderItem
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrderId { get; set; }
-    public Order Order { get; set; } = null!;
+    public Order Order { get; set; } = null!; // Navigation property
     public Guid MenuItemId { get; set; }
-    public MenuItem MenuItem { get; set; } = null!;
+    public MenuItem MenuItem { get; set; } = null!; // Navigation property
     public int Quantity { get; set; }
 }
 
@@ -471,14 +427,14 @@ public class Bill
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid SessionId { get; set; }
-    public string TableId { get; set; } = string.Empty; // Store as string to avoid complex FK if Table is deleted
     public string TableName { get; set; } = string.Empty;
-    public string CustomerId { get; set; } = string.Empty; // Store as string
+    public Guid TableId { get; set; }
+    public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
-    public MembershipType MembershipType { get; set; }
+    public string MembershipType { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
-    public long DurationMilliseconds { get; set; }
+    public long DurationMilliseconds { get; set; } // Total active duration in milliseconds
     public decimal HourlyRate { get; set; }
     public decimal TableCharges { get; set; }
     public ICollection<BillOrderItem> OrderItems { get; set; } = new List<BillOrderItem>();
@@ -489,14 +445,12 @@ public class Bill
     public decimal TaxRate { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal GrandTotal { get; set; }
-    public string Status { get; set; } = "Pending"; // e.g., "Pending", "Paid"
+    public string Status { get; set; } = "Completed"; // Completed, Voided, etc.
 }
 
 public class BillOrderItem
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid BillId { get; set; }
-    public string MenuItemId { get; set; } = string.Empty; // Store as string
+    public Guid MenuItemId { get; set; }
     public string MenuItemName { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal Price { get; set; }
@@ -510,10 +464,10 @@ public class StartSessionRequest
     public Guid CustomerId { get; set; }
 }
 
-public class OrderRequest
+public class CreateOrderRequest
 {
     public Guid SessionId { get; set; }
-    public List<OrderItemRequest> Items { get; set; } = new List<OrderItemRequest>();
+    public ICollection<OrderItemRequest> Items { get; set; } = new List<OrderItemRequest>();
 }
 
 public class OrderItemRequest
@@ -522,123 +476,72 @@ public class OrderItemRequest
     public int Quantity { get; set; }
 }
 
-// Database Context
-public class AppDbContext : DbContext
+public class DashboardStats
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public int ActiveTables { get; set; }
+    public int PausedTables { get; set; }
+    public int AvailableTables { get; set; }
+    public int ReservedTables { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public decimal TableRevenue { get; set; }
+    public decimal OrderRevenue { get; set; }
+    public int ActiveCustomers { get; set; }
+    public int TotalOrders { get; set; }
+}
+
+// Database Context
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     public DbSet<Table> Tables { get; set; }
     public DbSet<Customer> Customers { get; set; }
-    public DbSet<Session> Sessions { get; set; }
     public DbSet<MenuItem> MenuItems { get; set; }
+    public DbSet<Session> Sessions { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<Bill> Bills { get; set; }
-    public DbSet<BillOrderItem> BillOrderItems { get; set; } // For storing order items within a bill
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure one-to-one relationship between Table and Session
         modelBuilder.Entity<Table>()
             .HasOne(t => t.CurrentSession)
             .WithOne(s => s.Table)
             .HasForeignKey<Session>(s => s.TableId)
-            .IsRequired(false) // A table can exist without a current session
-            .OnDelete(DeleteBehavior.SetNull); // If table is deleted, set session's TableId to null
+            .IsRequired(false); // A table can exist without a current session
 
-        modelBuilder.Entity<Session>()
-            .HasOne(s => s.Customer)
-            .WithMany()
-            .HasForeignKey(s => s.CustomerId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting customer if they have active sessions
+        // Configure one-to-many relationship between Customer and Session
+        modelBuilder.Entity<Customer>()
+            .HasMany<Session>()
+            .WithOne(s => s.Customer)
+            .HasForeignKey(s => s.CustomerId);
 
+        // Configure one-to-many relationship between Session and Order
         modelBuilder.Entity<Session>()
             .HasMany(s => s.Orders)
             .WithOne(o => o.Session)
-            .HasForeignKey(o => o.SessionId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(o => o.SessionId);
 
+        // Configure one-to-many relationship between Order and OrderItem
         modelBuilder.Entity<Order>()
             .HasMany(o => o.OrderItems)
             .WithOne(oi => oi.Order)
-            .HasForeignKey(oi => oi.OrderId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(oi => oi.OrderId);
 
-        modelBuilder.Entity<OrderItem>()
-            .HasOne(oi => oi.MenuItem)
-            .WithMany()
-            .HasForeignKey(oi => oi.MenuItemId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting menu item if it's in an order
+        // Configure one-to-many relationship between MenuItem and OrderItem
+        modelBuilder.Entity<MenuItem>()
+            .HasMany<OrderItem>()
+            .WithOne(oi => oi.MenuItem)
+            .HasForeignKey(oi => oi.MenuItemId);
 
+        // Configure BillOrderItem as owned entity (JSON column in SQLite)
         modelBuilder.Entity<Bill>()
-            .HasMany(b => b.OrderItems)
-            .WithOne()
-            .HasForeignKey(boi => boi.BillId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Configure enum to string conversion
-        modelBuilder.Entity<Customer>()
-            .Property(c => c.MembershipType)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Session>()
-            .Property(s => s.Status)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Bill>()
-            .Property(b => b.MembershipType)
-            .HasConversion<string>();
-
-        base.OnModelCreating(modelBuilder);
-    }
-}
-
-// Data Seeding
-public static class SeedData
-{
-    public static void Initialize(AppDbContext context)
-    {
-        context.Database.EnsureCreated(); // Ensure database is created
-
-        if (!context.Tables.Any())
-        {
-            context.Tables.AddRange(
-                new Table { Name = "Table 1", HourlyRate = 12.00m, Location = "Main Hall" },
-                new Table { Name = "Table 2", HourlyRate = 12.00m, Location = "Main Hall" },
-                new Table { Name = "Table 3", HourlyRate = 15.00m, Location = "VIP Room" },
-                new Table { Name = "Table 4", HourlyRate = 15.00m, Location = "VIP Room" },
-                new Table { Name = "Table 5", HourlyRate = 10.00m, Location = "Main Hall" },
-                new Table { Name = "Table 6", HourlyRate = 10.00m, Location = "Main Hall" }
-            );
-            context.SaveChanges();
-        }
-
-        if (!context.Customers.Any())
-        {
-            context.Customers.AddRange(
-                new Customer { Name = "Alice Smith", MembershipType = MembershipType.Basic, DiscountPercentage = 0.05m },
-                new Customer { Name = "Bob Johnson", MembershipType = MembershipType.Premium, DiscountPercentage = 0.10m },
-                new Customer { Name = "Charlie Brown", MembershipType = MembershipType.VIP, DiscountPercentage = 0.15m }
-            );
-            context.SaveChanges();
-        }
-
-        if (!context.MenuItems.Any())
-        {
-            context.MenuItems.AddRange(
-                new MenuItem { Name = "Coffee", Description = "Freshly brewed coffee", Price = 3.50m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "Tea", Description = "Assorted tea selection", Price = 3.00m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "Soda", Description = "Various soft drinks", Price = 2.50m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "Water Bottle", Description = "Still or sparkling water", Price = 2.00m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "French Fries", Description = "Crispy golden fries", Price = 4.00m, Category = "Snacks", IsAvailable = true },
-                new MenuItem { Name = "Nachos", Description = "Cheese and jalapeño nachos", Price = 7.50m, Category = "Snacks", IsAvailable = true },
-                new MenuItem { Name = "Club Sandwich", Description = "Classic club sandwich with fries", Price = 12.00m, Category = "Meals", IsAvailable = true },
-                new MenuItem { Name = "Pizza Slice", Description = "Pepperoni or Cheese", Price = 5.00m, Category = "Meals", IsAvailable = true },
-                new MenuItem { Name = "Beer (Local)", Description = "Craft local beer", Price = 6.00m, Category = "Alcohol", IsAvailable = true },
-                new MenuItem { Name = "Wine (Glass)", Description = "Red or White", Price = 8.00m, Category = "Alcohol", IsAvailable = true },
-                new MenuItem { Name = "Burger", Description = "Beef burger with cheese", Price = 10.00m, Category = "Meals", IsAvailable = true },
-                new MenuItem { Name = "Chips", Description = "Assorted potato chips", Price = 2.00m, Category = "Snacks", IsAvailable = true }
-            );
-            context.SaveChanges();
-        }
+            .OwnsMany(b => b.OrderItems, oi =>
+            {
+                oi.ToJson(); // Store as JSON
+            });
     }
 }

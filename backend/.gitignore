@@ -6,15 +6,34 @@ obj/
 
 ## Ignore NuGet packages
 *.nupkg
+*.snupkg
 
 ## Ignore build results
-publish/
+*.dll
+*.exe
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+## Ignore user-specific files
+*.user
+*.suo
+*.log
+
+## Ignore test results
+TestResults/
 
 ## Ignore database files
 *.db
 *.sqlite
 *.sqlite-journal
 
-## Ignore user secrets
-appsettings.Development.json
-appsettings.Production.json
+## Ignore environment variables
+.env
+.env.*
+
+## Ignore Docker files
+Dockerfile.bak
+
+## Ignore generated files
+Generated/
