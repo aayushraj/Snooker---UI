@@ -46,3 +46,11 @@ yarn-error.log*
 # Electron
 /app/
 /dist_electron/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.docstates

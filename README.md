@@ -1,13 +1,13 @@
-# Snooker Club Management System
+# 🎱 Snooker Club Management System
 
 A comprehensive desktop application for managing snooker club operations, built with Next.js frontend and .NET backend.
 
 ## Project Structure
 
 \`\`\`
-├── frontend/          # Next.js React frontend
-├── backend/           # .NET Web API backend
-└── public/           # Shared assets
+├── backend/          # .NET Web API backend
+├── frontend/         # Next.js React frontend
+└── public/          # Shared assets
 \`\`\`
 
 ## Quick Start
@@ -82,7 +82,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5001") // Allow Next.js dev server and self
+        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5001")
                          .AllowAnyHeader()
                          .AllowAnyMethod());
 });
@@ -96,8 +96,8 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate(); // Apply any pending migrations
-        SeedData.Initialize(context); // Seed initial data
+        context.Database.Migrate();
+        SeedData.Initialize(context);
     }
     catch (Exception ex)
     {
@@ -114,17 +114,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowSpecificOrigin"); // Use the CORS policy
+app.UseCors("AllowSpecificOrigin");
 
-// API Endpoints
-// Dashboard Stats
+// Dashboard Stats API
 app.MapGet("/api/dashboard/stats", async (AppDbContext db) =>
 {
     var totalTables = await db.Tables.CountAsync();
     var activeSessions = await db.Sessions.Where(s => s.Status == SessionStatus.Active).ToListAsync();
     var pausedSessions = await db.Sessions.Where(s => s.Status == SessionStatus.Paused).ToListAsync();
     var availableTables = totalTables - activeSessions.Count - pausedSessions.Count;
-    var reservedTables = 0; // Placeholder for future booking system
+    var reservedTables = 0;
 
     var totalRevenue = await db.Bills.SumAsync(b => b.GrandTotal);
     var tableRevenue = await db.Bills.SumAsync(b => b.TableCharges);
@@ -134,13 +133,13 @@ app.MapGet("/api/dashboard/stats", async (AppDbContext db) =>
                                             .Select(s => s.CustomerId)
                                             .Distinct()
                                             .CountAsync();
-    var totalOrders = await db.Orders.CountAsync(); // Count all orders
+    var totalOrders = await db.Orders.CountAsync();
 
     return Results.Ok(new
     {
         ActiveTables = activeSessions.Count,
         PausedTables = pausedSessions.Count,
-        AvailableTables = availableTables > 0 ? availableTables : 0, // Ensure non-negative
+        AvailableTables = availableTables > 0 ? availableTables : 0,
         ReservedTables = reservedTables,
         TotalRevenue = totalRevenue,
         TableRevenue = tableRevenue,
@@ -198,7 +197,6 @@ app.MapGet("/api/customers", async (AppDbContext db) =>
 
 app.MapPost("/api/customers", async (Customer customer, AppDbContext db) =>
 {
-    // Set discount based on membership type
     customer.DiscountPercentage = customer.MembershipType switch
     {
         MembershipType.Basic => 0.05m,
@@ -232,7 +230,7 @@ app.MapPost("/api/sessions/start", async (StartSessionRequest request, AppDbCont
     };
 
     db.Sessions.Add(session);
-    table.CurrentSession = session; // Link session to table
+    table.CurrentSession = session;
     await db.SaveChangesAsync();
     return Results.Created($"/api/sessions/{session.Id}", session);
 });
@@ -279,32 +277,21 @@ app.MapPost("/api/sessions/{id}/end", async (Guid id, AppDbContext db) =>
     session.Status = SessionStatus.Ended;
     session.EndTime = DateTime.UtcNow;
 
-    // Calculate duration
     var totalDuration = (session.EndTime.Value - session.StartTime) - session.PausedDuration;
     session.DurationMilliseconds = (long)totalDuration.TotalMilliseconds;
 
-    // Calculate table charges
     var totalHours = (decimal)totalDuration.TotalHours;
     session.TableCharges = totalHours * session.HourlyRate;
 
-    // Calculate order charges
     session.OrderCharges = session.Orders.SelectMany(o => o.OrderItems).Sum(oi => oi.Quantity * oi.MenuItem.Price);
-
-    // Calculate subtotal
     session.Subtotal = session.TableCharges + session.OrderCharges;
-
-    // Apply discount
     session.DiscountAmount = session.Subtotal * session.DiscountPercentage;
     var discountedSubtotal = session.Subtotal - session.DiscountAmount;
 
-    // Apply tax (e.g., 10%)
-    session.TaxRate = 0.10m; // 10% tax
+    session.TaxRate = 0.10m;
     session.TaxAmount = discountedSubtotal * session.TaxRate;
-
-    // Calculate grand total
     session.GrandTotal = discountedSubtotal + session.TaxAmount;
 
-    // Create a bill
     var bill = new Bill
     {
         SessionId = session.Id,
@@ -333,11 +320,10 @@ app.MapPost("/api/sessions/{id}/end", async (Guid id, AppDbContext db) =>
         TaxRate = session.TaxRate,
         TaxAmount = session.TaxAmount,
         GrandTotal = session.GrandTotal,
-        Status = "Paid" // Assuming immediate payment for simplicity
+        Status = "Paid"
     };
     db.Bills.Add(bill);
 
-    // Detach session from table
     session.Table.CurrentSession = null;
 
     await db.SaveChangesAsync();
@@ -426,268 +412,265 @@ app.MapGet("/api/orders/{sessionId}", async (Guid sessionId, AppDbContext db) =>
 
 app.Run();
 
-// Models
-public class Table
+namespace SnookerClubApi.Models
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = string.Empty;
-    public decimal HourlyRate { get; set; }
-    public string Location { get; set; } = string.Empty; // e.g., "Main Hall", "VIP Room"
-    public Session? CurrentSession { get; set; } // Navigation property for current session
-}
-
-public class Customer
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = string.Empty;
-    public MembershipType MembershipType { get; set; } = MembershipType.None;
-    public decimal DiscountPercentage { get; set; } = 0m;
-}
-
-public enum MembershipType
-{
-    None,
-    Basic,
-    Premium,
-    VIP
-}
-
-public class Session
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid TableId { get; set; }
-    public Table Table { get; set; } = null!;
-    public Guid CustomerId { get; set; }
-    public Customer Customer { get; set; } = null!;
-    public DateTime StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
-    public TimeSpan PausedDuration { get; set; } = TimeSpan.Zero;
-    public DateTime? PausedAt { get; set; }
-    public SessionStatus Status { get; set; } = SessionStatus.Active;
-    public decimal HourlyRate { get; set; } // Rate at the time of session start
-    public decimal DiscountPercentage { get; set; } // Discount at the time of session start
-
-    // Calculated fields for billing
-    public long DurationMilliseconds { get; set; }
-    public decimal TableCharges { get; set; }
-    public decimal OrderCharges { get; set; }
-    public decimal Subtotal { get; set; }
-    public decimal DiscountAmount { get; set; }
-    public decimal TaxRate { get; set; }
-    public decimal TaxAmount { get; set; }
-    public decimal GrandTotal { get; set; }
-
-    public ICollection<Order> Orders { get; set; } = new List<Order>();
-}
-
-public enum SessionStatus
-{
-    Active,
-    Paused,
-    Ended
-}
-
-public class MenuItem
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public string Category { get; set; } = string.Empty; // e.g., "Beverages", "Snacks", "Meals", "Alcohol"
-    public bool IsAvailable { get; set; } = true;
-}
-
-public class Order
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid SessionId { get; set; }
-    public Session Session { get; set; } = null!;
-    public DateTime OrderTime { get; set; }
-    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
-}
-
-public class OrderItem
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid OrderId { get; set; }
-    public Order Order { get; set; } = null!;
-    public Guid MenuItemId { get; set; }
-    public MenuItem MenuItem { get; set; } = null!;
-    public int Quantity { get; set; }
-}
-
-public class Bill
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid SessionId { get; set; }
-    public string TableId { get; set; } = string.Empty; // Store as string to avoid complex FK if Table is deleted
-    public string TableName { get; set; } = string.Empty;
-    public string CustomerId { get; set; } = string.Empty; // Store as string
-    public string CustomerName { get; set; } = string.Empty;
-    public MembershipType MembershipType { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public long DurationMilliseconds { get; set; }
-    public decimal HourlyRate { get; set; }
-    public decimal TableCharges { get; set; }
-    public ICollection<BillOrderItem> OrderItems { get; set; } = new List<BillOrderItem>();
-    public decimal OrderCharges { get; set; }
-    public decimal Subtotal { get; set; }
-    public decimal DiscountPercentage { get; set; }
-    public decimal DiscountAmount { get; set; }
-    public decimal TaxRate { get; set; }
-    public decimal TaxAmount { get; set; }
-    public decimal GrandTotal { get; set; }
-    public string Status { get; set; } = "Pending"; // e.g., "Pending", "Paid"
-}
-
-public class BillOrderItem
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid BillId { get; set; }
-    public string MenuItemId { get; set; } = string.Empty; // Store as string
-    public string MenuItemName { get; set; } = string.Empty;
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
-    public decimal Total { get; set; }
-}
-
-// DTOs for requests
-public class StartSessionRequest
-{
-    public Guid TableId { get; set; }
-    public Guid CustomerId { get; set; }
-}
-
-public class OrderRequest
-{
-    public Guid SessionId { get; set; }
-    public List<OrderItemRequest> Items { get; set; } = new List<OrderItemRequest>();
-}
-
-public class OrderItemRequest
-{
-    public Guid MenuItemId { get; set; }
-    public int Quantity { get; set; }
-}
-
-// Database Context
-public class AppDbContext : DbContext
-{
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-    public DbSet<Table> Tables { get; set; }
-    public DbSet<Customer> Customers { get; set; }
-    public DbSet<Session> Sessions { get; set; }
-    public DbSet<MenuItem> MenuItems { get; set; }
-    public DbSet<Order> Orders { get; set; }
-    public DbSet<OrderItem> OrderItems { get; set; }
-    public DbSet<Bill> Bills { get; set; }
-    public DbSet<BillOrderItem> BillOrderItems { get; set; } // For storing order items within a bill
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public class Table
     {
-        modelBuilder.Entity<Table>()
-            .HasOne(t => t.CurrentSession)
-            .WithOne(s => s.Table)
-            .HasForeignKey<Session>(s => s.TableId)
-            .IsRequired(false) // A table can exist without a current session
-            .OnDelete(DeleteBehavior.SetNull); // If table is deleted, set session's TableId to null
-
-        modelBuilder.Entity<Session>()
-            .HasOne(s => s.Customer)
-            .WithMany()
-            .HasForeignKey(s => s.CustomerId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting customer if they have active sessions
-
-        modelBuilder.Entity<Session>()
-            .HasMany(s => s.Orders)
-            .WithOne(o => o.Session)
-            .HasForeignKey(o => o.SessionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Order>()
-            .HasMany(o => o.OrderItems)
-            .WithOne(oi => oi.Order)
-            .HasForeignKey(oi => oi.OrderId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<OrderItem>()
-            .HasOne(oi => oi.MenuItem)
-            .WithMany()
-            .HasForeignKey(oi => oi.MenuItemId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting menu item if it's in an order
-
-        modelBuilder.Entity<Bill>()
-            .HasMany(b => b.OrderItems)
-            .WithOne()
-            .HasForeignKey(boi => boi.BillId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Configure enum to string conversion
-        modelBuilder.Entity<Customer>()
-            .Property(c => c.MembershipType)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Session>()
-            .Property(s => s.Status)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Bill>()
-            .Property(b => b.MembershipType)
-            .HasConversion<string>();
-
-        base.OnModelCreating(modelBuilder);
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Name { get; set; } = string.Empty;
+        public decimal HourlyRate { get; set; }
+        public string Location { get; set; } = string.Empty;
+        public Session? CurrentSession { get; set; }
     }
-}
 
-// Data Seeding
-public static class SeedData
-{
-    public static void Initialize(AppDbContext context)
+    public class Customer
     {
-        context.Database.EnsureCreated(); // Ensure database is created
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Name { get; set; } = string.Empty;
+        public MembershipType MembershipType { get; set; } = MembershipType.None;
+        public decimal DiscountPercentage { get; set; } = 0m;
+    }
 
-        if (!context.Tables.Any())
+    public enum MembershipType
+    {
+        None,
+        Basic,
+        Premium,
+        VIP
+    }
+
+    public class Session
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid TableId { get; set; }
+        public Table Table { get; set; } = null!;
+        public Guid CustomerId { get; set; }
+        public Customer Customer { get; set; } = null!;
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public TimeSpan PausedDuration { get; set; } = TimeSpan.Zero;
+        public DateTime? PausedAt { get; set; }
+        public SessionStatus Status { get; set; } = SessionStatus.Active;
+        public decimal HourlyRate { get; set; }
+        public decimal DiscountPercentage { get; set; }
+
+        public long DurationMilliseconds { get; set; }
+        public decimal TableCharges { get; set; }
+        public decimal OrderCharges { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal GrandTotal { get; set; }
+
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
+    }
+
+    public enum SessionStatus
+    {
+        Active,
+        Paused,
+        Ended
+    }
+
+    public class MenuItem
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public bool IsAvailable { get; set; } = true;
+    }
+
+    public class Order
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid SessionId { get; set; }
+        public Session Session { get; set; } = null!;
+        public DateTime OrderTime { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    }
+
+    public class OrderItem
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid OrderId { get; set; }
+        public Order Order { get; set; } = null!;
+        public Guid MenuItemId { get; set; }
+        public MenuItem MenuItem { get; set; } = null!;
+        public int Quantity { get; set; }
+    }
+
+    public class Bill
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid SessionId { get; set; }
+        public string TableId { get; set; } = string.Empty;
+        public string TableName { get; set; } = string.Empty;
+        public string CustomerId { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public MembershipType MembershipType { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public long DurationMilliseconds { get; set; }
+        public decimal HourlyRate { get; set; }
+        public decimal TableCharges { get; set; }
+        public ICollection<BillOrderItem> OrderItems { get; set; } = new List<BillOrderItem>();
+        public decimal OrderCharges { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal DiscountPercentage { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal GrandTotal { get; set; }
+        public string Status { get; set; } = "Pending";
+    }
+
+    public class BillOrderItem
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid BillId { get; set; }
+        public string MenuItemId { get; set; } = string.Empty;
+        public string MenuItemName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+        public decimal Total { get; set; }
+    }
+
+    public class StartSessionRequest
+    {
+        public Guid TableId { get; set; }
+        public Guid CustomerId { get; set; }
+    }
+
+    public class OrderRequest
+    {
+        public Guid SessionId { get; set; }
+        public List<OrderItemRequest> Items { get; set; } = new List<OrderItemRequest>();
+    }
+
+    public class OrderItemRequest
+    {
+        public Guid MenuItemId { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public DbSet<Table> Tables { get; set; }
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<Session> Sessions { get; set; }
+        public DbSet<MenuItem> MenuItems { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<Bill> Bills { get; set; }
+        public DbSet<BillOrderItem> BillOrderItems { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            context.Tables.AddRange(
-                new Table { Name = "Table 1", HourlyRate = 12.00m, Location = "Main Hall" },
-                new Table { Name = "Table 2", HourlyRate = 12.00m, Location = "Main Hall" },
-                new Table { Name = "Table 3", HourlyRate = 15.00m, Location = "VIP Room" },
-                new Table { Name = "Table 4", HourlyRate = 15.00m, Location = "VIP Room" },
-                new Table { Name = "Table 5", HourlyRate = 10.00m, Location = "Main Hall" },
-                new Table { Name = "Table 6", HourlyRate = 10.00m, Location = "Main Hall" }
-            );
-            context.SaveChanges();
+            modelBuilder.Entity<Table>()
+                .HasOne(t => t.CurrentSession)
+                .WithOne(s => s.Table)
+                .HasForeignKey<Session>(s => s.TableId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Session>()
+                .HasOne(s => s.Customer)
+                .WithMany()
+                .HasForeignKey(s => s.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Session>()
+                .HasMany(s => s.Orders)
+                .WithOne(o => o.Session)
+                .HasForeignKey(o => o.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Order>()
+                .HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.MenuItem)
+                .WithMany()
+                .HasForeignKey(oi => oi.MenuItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Bill>()
+                .HasMany(b => b.OrderItems)
+                .WithOne()
+                .HasForeignKey(boi => boi.BillId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.MembershipType)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Session>()
+                .Property(s => s.Status)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Bill>()
+                .Property(b => b.MembershipType)
+                .HasConversion<string>();
+
+            base.OnModelCreating(modelBuilder);
         }
+    }
 
-        if (!context.Customers.Any())
+    public static class SeedData
+    {
+        public static void Initialize(AppDbContext context)
         {
-            context.Customers.AddRange(
-                new Customer { Name = "Alice Smith", MembershipType = MembershipType.Basic, DiscountPercentage = 0.05m },
-                new Customer { Name = "Bob Johnson", MembershipType = MembershipType.Premium, DiscountPercentage = 0.10m },
-                new Customer { Name = "Charlie Brown", MembershipType = MembershipType.VIP, DiscountPercentage = 0.15m }
-            );
-            context.SaveChanges();
-        }
+            context.Database.EnsureCreated();
 
-        if (!context.MenuItems.Any())
-        {
-            context.MenuItems.AddRange(
-                new MenuItem { Name = "Coffee", Description = "Freshly brewed coffee", Price = 3.50m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "Tea", Description = "Assorted tea selection", Price = 3.00m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "Soda", Description = "Various soft drinks", Price = 2.50m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "Water Bottle", Description = "Still or sparkling water", Price = 2.00m, Category = "Beverages", IsAvailable = true },
-                new MenuItem { Name = "French Fries", Description = "Crispy golden fries", Price = 4.00m, Category = "Snacks", IsAvailable = true },
-                new MenuItem { Name = "Nachos", Description = "Cheese and jalapeño nachos", Price = 7.50m, Category = "Snacks", IsAvailable = true },
-                new MenuItem { Name = "Club Sandwich", Description = "Classic club sandwich with fries", Price = 12.00m, Category = "Meals", IsAvailable = true },
-                new MenuItem { Name = "Pizza Slice", Description = "Pepperoni or Cheese", Price = 5.00m, Category = "Meals", IsAvailable = true },
-                new MenuItem { Name = "Beer (Local)", Description = "Craft local beer", Price = 6.00m, Category = "Alcohol", IsAvailable = true },
-                new MenuItem { Name = "Wine (Glass)", Description = "Red or White", Price = 8.00m, Category = "Alcohol", IsAvailable = true },
-                new MenuItem { Name = "Burger", Description = "Beef burger with cheese", Price = 10.00m, Category = "Meals", IsAvailable = true },
-                new MenuItem { Name = "Chips", Description = "Assorted potato chips", Price = 2.00m, Category = "Snacks", IsAvailable = true }
-            );
-            context.SaveChanges();
+            if (!context.Tables.Any())
+            {
+                context.Tables.AddRange(
+                    new Table { Name = "Table 1", HourlyRate = 12.00m, Location = "Main Hall" },
+                    new Table { Name = "Table 2", HourlyRate = 12.00m, Location = "Main Hall" },
+                    new Table { Name = "Table 3", HourlyRate = 15.00m, Location = "VIP Room" },
+                    new Table { Name = "Table 4", HourlyRate = 15.00m, Location = "VIP Room" },
+                    new Table { Name = "Table 5", HourlyRate = 10.00m, Location = "Main Hall" },
+                    new Table { Name = "Table 6", HourlyRate = 10.00m, Location = "Main Hall" }
+                );
+                context.SaveChanges();
+            }
+
+            if (!context.Customers.Any())
+            {
+                context.Customers.AddRange(
+                    new Customer { Name = "Alice Smith", MembershipType = MembershipType.Basic, DiscountPercentage = 0.05m },
+                    new Customer { Name = "Bob Johnson", MembershipType = MembershipType.Premium, DiscountPercentage = 0.10m },
+                    new Customer { Name = "Charlie Brown", MembershipType = MembershipType.VIP, DiscountPercentage = 0.15m }
+                );
+                context.SaveChanges();
+            }
+
+            if (!context.MenuItems.Any())
+            {
+                context.MenuItems.AddRange(
+                    new MenuItem { Name = "Coffee", Description = "Freshly brewed coffee", Price = 3.50m, Category = "Beverages", IsAvailable = true },
+                    new MenuItem { Name = "Tea", Description = "Assorted tea selection", Price = 3.00m, Category = "Beverages", IsAvailable = true },
+                    new MenuItem { Name = "Soda", Description = "Various soft drinks", Price = 2.50m, Category = "Beverages", IsAvailable = true },
+                    new MenuItem { Name = "Water Bottle", Description = "Still or sparkling water", Price = 2.00m, Category = "Beverages", IsAvailable = true },
+                    new MenuItem { Name = "French Fries", Description = "Crispy golden fries", Price = 4.00m, Category = "Snacks", IsAvailable = true },
+                    new MenuItem { Name = "Nachos", Description = "Cheese and jalapeño nachos", Price = 7.50m, Category = "Snacks", IsAvailable = true },
+                    new MenuItem { Name = "Club Sandwich", Description = "Classic club sandwich with fries", Price = 12.00m, Category = "Meals", IsAvailable = true },
+                    new MenuItem { Name = "Pizza Slice", Description = "Pepperoni or Cheese", Price = 5.00m, Category = "Meals", IsAvailable = true },
+                    new MenuItem { Name = "Beer (Local)", Description = "Craft local beer", Price = 6.00m, Category = "Alcohol", IsAvailable = true },
+                    new MenuItem { Name = "Wine (Glass)", Description = "Red or White", Price = 8.00m, Category = "Alcohol", IsAvailable = true },
+                    new MenuItem { Name = "Burger", Description = "Beef burger with cheese", Price = 10.00m, Category = "Meals", IsAvailable = true },
+                    new MenuItem { Name = "Chips", Description = "Assorted potato chips", Price = 2.00m, Category = "Snacks", IsAvailable = true }
+                );
+                context.SaveChanges();
+            }
         }
     }
 }
