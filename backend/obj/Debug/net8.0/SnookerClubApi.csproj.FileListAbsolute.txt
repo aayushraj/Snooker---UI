@@ -1,0 +1,8 @@
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.csproj.AssemblyReference.cache
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.GeneratedMSBuildEditorConfig.editorconfig
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.AssemblyInfoInputs.cache
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.AssemblyInfo.cs
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.csproj.CoreCompileInputs.cache
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.MvcApplicationPartsAssemblyInfo.cs
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.MvcApplicationPartsAssemblyInfo.cache
+D:\2.0 Projects\10.0 ASP .NET APIs\Snooker---UI\backend\obj\Debug\net8.0\SnookerClubApi.sourcelink.json
