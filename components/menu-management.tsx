@@ -84,7 +84,7 @@ export function MenuManagement() {
   const [activeTab, setActiveTab] = React.useState("all")
   const [formData, setFormData] = React.useState({
     name: "",
-    category: "beverages" as const,
+    category: "beverages" as MenuItem["category"],
     price: "",
     description: "",
     available: true,
